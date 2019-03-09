@@ -151,7 +151,9 @@ class PPVM(object):
     """~~~~~~~~~~ Proving Piet Virtual Machine ~~~~~~~~~
     Just like a Piet virtual machine, but buffers output
     and stops on popping an empty stack or reading input
-    This is used for static analysis; provable code is 
+    This is used for static analysis -- operations on a
+    nonempty stack are performed at compile time until a
+    cycle is encountered or an exit condition is hit.
     """
 
     def __init__(self, dp, cc):
