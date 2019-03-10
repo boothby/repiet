@@ -1,7 +1,8 @@
 import subprocess
 
 class backend:
-    def mangle(self, (x, y, d, c)):
+    def mangle(self, z):
+        (x, y, d, c) = z
         a = ("X%d" if d&1 else "x%d")%x
         b = ("Y%d" if d&2 else "y%d")%y
         return b+a if c else a+b
@@ -96,11 +97,12 @@ class cppbackend(backend):
     def jump(self, next):
         return "goto {};".format(next);
 
-    def execute(filename):
-        g++ -o ptr1 ptr1.cpp
-        prog = subprocess.run("g++ -o {}.out {}".format(filename, filename))
-        prog = subprocess.run("./{}.out".format(filename), capture_output=True, text=True)
-        return prog.stdout, prog.stderr
+    def execute(self, filename, capture_output=False):
+        prog = subprocess.run("g++ -o {}.out {}".format(filename, filename), shell=True)
+        args = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE) if capture_output else {}
+        prog = subprocess.run("./{}.out".format(filename), *args)
+        if capture_output:
+            return prog.stdout, prog.stderr
 
     def instruction(self, i, size):
         if i == 'PSH':
@@ -130,7 +132,7 @@ class cppbackend(backend):
 using namespace std;
 vector<int> d;
 void psh(int x) {d.push_back(x);}
-int pop(int &x) {if (d.size()) {x = d.back();d.pop_back();return 1;}return 0;}
+template<typename t> int pop(t &x) {if (d.size()) {x = d.back();d.pop_back();return 1;}return 0;}
 int pop(int &x, int &y) {if (d.size() > 1) {x = d.back();d.pop_back();y = d.back();d.pop_back();;return 1;}return 0;}
 void rll(int x, int y) {
  if (y<=0 || y > d.size()) return;
@@ -213,7 +215,9 @@ if __name__ == "__main__":
         bounce = bounce()
 """
 
-    def execute(filename):
-        prog = subprocess.run("python {}".format(filename), capture_output=True, text=True)
-        return prog.stdout, prog.stderr
+    def execute(self, filename, capture_output=False):
+        args = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE) if capture_output else {}
+        prog = subprocess.run("python {}".format(filename), *args, shell=True)
+        if capture_output:
+            return prog.stdout, prog.stderr
 

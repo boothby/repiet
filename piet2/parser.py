@@ -100,7 +100,7 @@ class Parser:
         elif self.dp == 3:
             y -= 1
         else:
-            print "Can't happen!"
+            raise RuntimeError("bad direction pointer")
             sys.exit(1)
         return x,y
 

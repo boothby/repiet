@@ -15,7 +15,6 @@ if __name__ == '__main__':
     parser.add_argument('--execute', action='store_true', 
         default=False, help = '')
 
-
     args = parser.parse_args()
 
     if args.backend == 'c++':
@@ -23,8 +22,6 @@ if __name__ == '__main__':
     elif args.backend == 'python':
         from backends import pybackend as backend
     backend=backend()
-
-
 
     if args.optimize:
         from optimizer import Optimizer as builder
@@ -35,4 +32,4 @@ if __name__ == '__main__':
     prog = c.compile(args.target)
 
     if args.execute:
-        print(backend.execute(args.target))
+        backend.execute(args.target)
