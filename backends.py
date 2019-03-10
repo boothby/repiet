@@ -25,7 +25,7 @@ class backend:
                        (n_x,n_y,n_d,1-n_c)]
             return self.switch(list(map(self.mangle, options)))
         else:
-            return self.join_instructions((self.instruction(i, size), self.jump(next)))
+            return self.join_instructions((self.instruction(i, size), self.jump(self.mangle(next))))
 
     def print_str(self, x):
         return self.join_instructions(
@@ -94,10 +94,13 @@ class cppbackend(backend):
         return "".join(strux)
 
     def jump(self, next):
-        return "goto {};".format(self.mangle(next));
+        return "goto {};".format(next);
 
     def execute(filename):
-        raise NotImplementedError
+        g++ -o ptr1 ptr1.cpp
+        prog = subprocess.run("g++ -o {}.out {}".format(filename, filename))
+        prog = subprocess.run("./{}.out".format(filename), capture_output=True, text=True)
+        return prog.stdout, prog.stderr
 
     def instruction(self, i, size):
         if i == 'PSH':
@@ -163,7 +166,7 @@ class pybackend(backend):
         return "".join(strux)
 
     def jump(self, next):
-        return "return {};".format(self.mangle(next))
+        return "return {};".format(next)
 
     def instruction(self, i, size):
         if i == 'PSH':

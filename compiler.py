@@ -58,13 +58,12 @@ class Compiler:
         return self._block[r]
 
 
-
-    def step(self, x, y, dp, cc):
+    def step(self, x, y, d, c):
         pars = self._pars
         pars.x = x
         pars.y = y
-        pars.cc = [-1,1][cc]
-        pars.dp = dp
+        pars.cc = [-1,1][c]
+        pars.dp = d
         instruction = pars.step()
 
         if instruction is None:
@@ -75,19 +74,19 @@ class Compiler:
         return instruction, c.x, c.y, pars.dp, max(0,pars.cc)
 
     def block_neighbors(self, block):
-        for dp in range(4):
-            for cc in 0,1:
-                i, x, y, next_dp, next_cc= self.step(block.x, block.y, dp, cc)
+        for d in range(4):
+            for c in 0,1:
+                i, n_x, n_y, n_d, n_c= self.step(block.x, block.y, d, c)
                 if i is not None:
-                    yield dp, cc, i, next_dp, next_cc, x, y
+                    yield d, c, i, n_x, n_y, n_d, n_c
 
     def collect_deps(self, block, deps):
-        for dp, cc, i, next_dp, next_cc, x, y in self.block_neighbors(block):
-            CC = [0,1] if i == 'SWT' else [next_cc]
-            DP = [0,1,2,3] if i == 'PTR' else [next_dp]
-            for ndp in DP:
-                for ncc in CC:
-                    deps.add_edge((block.x, block.y, dp, cc), (x, y, ndp, ncc), instruction=i)
+        for d, c, i, n_x, n_y, n_d, n_c in self.block_neighbors(block):
+            CC = [0,1] if i == 'SWT' else [n_c]
+            DP = [0,1,2,3] if i == 'PTR' else [n_d]
+            for n_d in DP:
+                for n_c in CC:
+                    deps.add_edge((block.x, block.y, d, c), (n_x, n_y, n_d, n_c), instruction=i)
 
     def compile_dep(self, x, y, d, c):
         block = self._block[x,y]
@@ -109,12 +108,12 @@ class Compiler:
             first = (f_x, f_y, f_d, f_c) if f_i == 'NOP' else (0,0,0,0)
             deps = {first}            
             for u, v in nx.traversal.depth_first_search.dfs_edges(parsed, first):
-                x,y,dp,cc = v
+                x,y,d,c = v
                 i = parsed[u][v]['instruction']
-                deps.add((x,y,dp,cc))
+                deps.add((x,y,d,c))
 
-            for (x,y,dp,cc) in deps:
-                defn = self.compile_dep(x,y,dp,cc)
+            for (x,y,d,c) in deps:
+                defn = self.compile_dep(x,y,d,c)
                 code.append(defn)
         else:
             first = None
