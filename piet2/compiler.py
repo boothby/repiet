@@ -1,6 +1,6 @@
 from itertools import product
 import networkx as nx
-from parser import Parser
+from piet2.parser import Parser
 from collections import namedtuple
 
 Block = namedtuple('block', ['x','y','size'])
@@ -52,6 +52,10 @@ class Compiler:
         if p != p0:
             p = self._parent[p0] = self._find(p)
         return p
+
+    def dump_blocks(self):
+        for block in self._block.values():
+            print((block.x, block.y), block.size, self._pars.matrix[block.y][block.x])
 
     def get_block(self, p):
         r = self._find(p)

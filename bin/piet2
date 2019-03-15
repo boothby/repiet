@@ -1,9 +1,9 @@
+#! /usr/bin/env python3
 import argparse
 import sys
+import piet2
 
 if __name__ == '__main__':
-    filename = sys.argv[1]
-    
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('source', type=str, help = 'source image')
     parser.add_argument('target', type=str, help = 'output filename')
@@ -18,15 +18,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.backend == 'c++':
-        from backends import cppbackend as backend
+        from piet2.backends import cppbackend as backend
     elif args.backend == 'python':
-        from backends import pybackend as backend
+        from piet2.backends import pybackend as backend
     backend=backend()
 
     if args.optimize:
-        from optimizer import Optimizer as builder
+        from piet2.optimizer import Optimizer as builder
     else:
-        from compiler import Compiler as builder
+        from piet2.compiler import Compiler as builder
 
     c = builder(args.source, backend)
     prog = c.compile(args.target)

@@ -1,6 +1,6 @@
 from itertools import product
 import networkx as nx
-from parser import Parser
+from piet2.parser import Parser
 
 class Optimizer:
     def __init__(self, filename, backend):
