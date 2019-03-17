@@ -2,6 +2,15 @@ from collections import namedtuple
 from PIL import Image
 from itertools import product
 
+SLIDE = (255, 255, 255)
+
+HL =  {(a,b,c): (3*j+k, i)
+                 for i, (x,y) in enumerate(((192, 255), (0, 255), (0,192)))
+                     for j, (u,v) in enumerate(((x,y),(y,x)))
+                        for k, (a,b,c) in enumerate(((v,u,u), (v,v,u), (u,v,u)))}
+
+print HL
+
 Lexeme = namedtuple('lexeme', ['name', 'corners', 'size', 'color'])
 class Lexer:
     """
@@ -41,6 +50,11 @@ class Lexer:
     If a point p = (x, y) is in a sliding region and d is a direction,
         then L.slide(p, d) is the furthest point reachable by sliding
         d-ward from p.
+
+    Thus, the role of the Lexer is to pre-compute all pixel computation.
+
+    Runs in almost-linear in the number of pixels in the image, and discards
+    the Image object after initialization is complete to minimize memory use
     """
     def __init__(self, filename):
         self._parent = {}
@@ -67,8 +81,8 @@ class Lexer:
     def slide(self, p, d):
         """Returns the address maximum (x, y) reached by sliding d-ward
         p must be in a sliding region"""
-        return self._slide[xy1, d] if d in (1, 2) else (
-                 self._slide[self._slide[xy1, d^2], d]
+        return self._slide[p, d] if d in (3, 2) else (
+                 self._slide[self._slide[p, d^2], d]
                )
 
     def _lex(self, image):
@@ -97,7 +111,7 @@ class Lexer:
             x, y = p
             color = getcolor(p)
             for q, z, Z, d0, d1 in [((x+1, y), x, X-1, 2, 0),
-                                    ((x, y+1), y, Y-1, 1, 3)]:
+                                    ((x, y+1), y, Y-1, 3, 1)]:
                                                          #production rules W=white, X=anything but white, C=specific color
                 if z >= Z:                               #pq: definition... runtime analysis for data structure use
                     if color == SLIDE:                   #---------------------------------------------------------------
@@ -173,17 +187,15 @@ def _squash_corners(p0, p1, corners):
 def _select_corner(d0, d1, c, p0, p1):
     """ return the (d0+2*d1, c)-most of the two points p0, p1
     okay and let's be honest this code is like woah.  I just
-    wrote it tight as I could and 
-    Piet_py.txt from DMM's page to 
+    wrote it in the tightest form I could imagine, and tweaked
+    it until it was correct.
     """
-    f = lambda p: p if d0 (p0[1], p0[0]) if d0 else lambda p: p
+    f = (lambda p: (p[1], p[0])) if d1 else (lambda p: p) 
     x0, y0 = f(p0)
     x1, y1 = f(p1)
-    x0, y0 = (x0, y0) if ((
-                          (x0 == x1) and ((y1 < y0) if d0^c else (y0 < y1))
-                         ) or (
-                          ((x0 < x1) if d1 else (x1 < x0))
-                         )) else (x1, y1)
-    return f(
-(y0, x0) if d0 else (x0, y0)
-
+    p2 = (x0, y0) if ((
+                      (x0 == x1) and ((y1 < y0) if c^d0^d1 else (y0 < y1))
+                     ) or (
+                      ((x0 < x1) if d0 else (x1 < x0))
+                     )) else (x1, y1)
+    return f(p2)
