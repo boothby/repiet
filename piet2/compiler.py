@@ -1,6 +1,6 @@
 from itertools import product
 import networkx as nx
-from parser2 import Parser
+from parser import Parser
 from collections import namedtuple
 
 Subroutine = namedtuple('subroutine', ['name','ops','dests'])
