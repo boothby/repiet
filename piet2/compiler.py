@@ -26,21 +26,27 @@ class Compiler:
                 if dest not in subs:
                     to_process = dest, to_process
 
-    def _shortcut(self, parser, node, hits = None, ops = None):
-        if ops is None:
-            ops = []
-            hits = set()
-        if len(node.dests) == 0:
-            return ops, ()
-        if node in hits:
-            return ops, (node.name, )
-        elif len(node.dests) > 1:
-            ops.append(node.op)
-            return ops, node.dests
-        else:
-            hits.add(node)
-            dest = parser.node(node.dests[0])
+    def _shortcut(self, parser, node):
+        ops = []
+        hits = {}
+
+        while True:
+            if len(node.dests) == 0:
+                return ops, ()
+            if node.name in hits:
+                steps = hits[node.name]
+                intro = ops[:steps]
+                loop = ops[steps:]
+                dests = node.name,
+                if steps:
+                    self._subroutines[node.name] = loop, dests
+                    return intro, dests
+                else:
+                    return loop, dests
+            elif len(node.dests) > 1:
+                ops.append(node.op)
+                return ops, node.dests
+            hits[node.name] = len(ops)
             if node.op != 'NOP':
                 ops.append(node.op)
-            return self._shortcut(parser, dest, hits, ops)
-
+            node = parser.node(node.dests[0])
