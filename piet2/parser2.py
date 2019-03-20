@@ -4,7 +4,7 @@ from itertools import product
 from lexer import Lexer, SLIDE, HL
 
 
-Node = namedtuple('node', ['name', 'op', 'dest'])
+Node = namedtuple('node', ['name', 'op', 'dests'])
 
 OP = [["NOP", "PSH", "POP"],
       ["ADD", "SBT", "MLT"],
@@ -97,7 +97,7 @@ class Parser:
             dnames = tuple(_name(dest) for dest in dests)
             self._graph[name] = Node(name, op, dnames)
             for dest, dname in zip(dests, dnames):
-                if dest not in self._graph:
+                if dname not in self._graph:
                     #sentinel value to moderate stack size
                     self._graph[dname] = None
                     front = dest, front #                this is a push
