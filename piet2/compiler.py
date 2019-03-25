@@ -14,19 +14,25 @@ class Compiler:
         if self._entry is not None:
             self._compile(parser)
 
+    def entry(self):
+        return self._entry
+    
+    def sub(self, name):
+        return self._subroutines[name]
+    
     def _compile(self, parser):
         subs = self._subroutines
         to_process = self._entry, ()
         while to_process:
             name, to_process = to_process
             node = parser.node(name)
-            ops, dests = self._shortcut(parser, node)
-            subs[name] = ops, dests
+            ops, dests = self._trace(parser, node)
+            subs[name] = Subroutine(name, ops, dests)
             for dest in dests:
                 if dest not in subs:
                     to_process = dest, to_process
 
-    def _shortcut(self, parser, node):
+    def _trace(self, parser, node):
         ops = []
         hits = {}
 
@@ -39,7 +45,7 @@ class Compiler:
                 loop = ops[steps:]
                 dests = node.name,
                 if steps:
-                    self._subroutines[node.name] = loop, dests
+                    self._subroutines[node.name] = Subroutine(node.name, loop, dests)
                     return intro, dests
                 else:
                     return loop, dests
@@ -50,3 +56,6 @@ class Compiler:
             if node.op != 'NOP':
                 ops.append(node.op)
             node = parser.node(node.dests[0])
+        
+
+

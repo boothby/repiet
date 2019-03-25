@@ -9,8 +9,6 @@ HL =  {(a,b,c): (3*j+k, i)
                      for j, (u,v) in enumerate(((x,y),(y,x)))
                         for k, (a,b,c) in enumerate(((v,u,u), (v,v,u), (u,v,u)))}
 
-print HL
-
 Lexeme = namedtuple('lexeme', ['name', 'corners', 'size', 'color'])
 class Lexer:
     """
