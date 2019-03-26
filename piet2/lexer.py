@@ -16,7 +16,7 @@ class Lexer:
     that a parser can collect those tokens into statements.  With Piet,
     it may not be immediately clear what a lexer would do.
 
-    Philisophcally, we consider single-color blocks to be tokens, if the 
+    Philisophcally, we consider single-color blocks to be tokens, if the
     color is one of the 18 programming colors.  Whitespace is important for
     control flow, so we take the opportunity to to preprocess it as well.
 
@@ -166,10 +166,6 @@ class Lexer:
         self._parent[prev] = root
         rank[root] += rank[prev]
         corners[root] = _squash_corners(root, prev, corners)
-
-    def dump_blocks(self):
-        for b in self._lexeme.values():
-            print(b.name, b.size, "0x%02x%02x%02x" % (b.color))
 
 def _squash_corners(p0, p1, corners):
     """compute the corners of the just-merged roots p0 and p1 

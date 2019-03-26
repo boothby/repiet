@@ -1,27 +1,27 @@
-from compiler import Compiler
+from tracer import Tracer
 
 class Optimizer:
     def __init__(self, filename):
         self._subroutines = {}
 
-        compiler = Compiler(filename)
-        self._entry = compiler.entry()
+        tracer = Tracer(filename)
+        self._entry = tracer.entry()
         if self._entry is not None:
-            self._optimize(compiler)
+            self._optimize(tracer)
 
-    def _optimize(self, compiler):
+    def _optimize(self, tracer):
         subs = self._subroutines
         to_process = self._entry, ()
         while to_process:
             name, to_process = to_process
-            sub = compiler.sub(name)
-            ops, dests = self._trace(compiler, sub)
+            sub = tracer.sub(name)
+            ops, dests = self._trace(tracer, sub)
             subs[name] = ops, dests
             for dest in dests:
                 if dest not in subs:
                     to_process = dest, to_process
 
-    def _trace(self, compiler, sub):
+    def _trace(self, tracer, sub):
         ops = []
         hits = set()
         vm = None
@@ -44,7 +44,7 @@ class Optimizer:
                     return ops, (dests[i],)
                 else:
                     hits.add((sub.name, i))
-                    sub = compiler.sub(dests[i])
+                    sub = tracer.sub(dests[i])
             else:
                 if vm is not None:
                     ops.append((vm.stack, vm.outputs))
