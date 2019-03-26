@@ -23,7 +23,13 @@ class Tracer:
     by examining the top of the stack.  Additionally, an empty tuple of
     destinations halts the program.
 
-    Tracing a parsed program takes linear time in the number of parsed Nodes.
+    We describe the public interface of a Tracer instance T, in two functions.
+    The first function, T.entry, returns the entry point to the program as a
+    string naming a Trace, or None.  The second function, T.node, returns a
+    Trace associated with a given name.
+
+    Tracing a parsed program takes linear time in the number of parsed Nodes,
+    which is ultimately linear in the number of pixels in the image.
     """
     def __init__(self, filename):
         self._traces = {}
@@ -31,7 +37,7 @@ class Tracer:
         parser = Parser(filename)
         self._entry = parser.entry()
         if self._entry is not None:
-            self._compile(parser)
+            self._trace(parser)
 
     def entry(self):
         """
@@ -49,9 +55,9 @@ class Tracer:
         A Trace is a namedtuple consisting of:
             * a unique name,
             * a tuple of operations, each being a 3-character opcode or an int
-            * a tuple of destination states
+            * a tuple of destination names
 
-        If the 3-character opcode is "PTR" or "SWT" there will be 4 or 2
+        If the final operation is "PTR" or "SWT" there will be 4 or 2
         destinations, respectively.  If there are zero destinations, then the
         program halts after executing the operations.  Otherwise, there is a
         single destination and the program jumpts to that destination after
