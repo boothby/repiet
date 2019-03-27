@@ -4,7 +4,7 @@ from itertools import product
 from lexer import Lexer, SLIDE, HL
 
 
-Node = namedtuple('node', ['name', 'op', 'dests'])
+Node = namedtuple('node', ['name', 'ops', 'dests'])
 
 OP = [["NOP", "PSH", "POP"],
       ["ADD", "SBT", "MLT"],
@@ -28,61 +28,58 @@ class Parser:
     Thus, the role of the Parser is to pre-compute state transitions, which
     effectively translates a lexed Piet program into a state machine.
 
-    We describe the public interface of a Parser instance P, in two 
-    functions.  This interface encodes states as Nodes.  A Node contains
-    a name, an instruction and a list of destinations.  An instruction is
-    either a 3-character opcode or an int representing a push.
+    We describe the public interface of a Parser instance P, representing a
+    parse tree.  A tree Node contains a name, an instruction and a tuple of
+    destinations.  An instruction is either a 3-character opcode or an int
+    representing a push.
 
-    The first function, P.entry, returns the entry point to the image as a
-    State.  The second function, P.node, returns a Node associated with a
-    given state.  
+    To get the name of the root, call P.root(), and Nodes themselves can be
+    retrieved by P[name].
 
     Construction of a parser takes linear time in the size of the lexer
     output, which is linear in the total image size.  The algorithm is a
-    depth-first search beginning at the entry point, processing nodes found
-    by the lexer.  Discards the Lexer after initialization, to minimize memory
-    use.
+    depth-first search beginning at the root, processing nodes found by the
+    lexer.  Discards the Lexer after initialization, to minimize memory use.
     """
     def __init__(self, filename):
         lexer = Lexer(filename)
         p0 = 0, 0
         d = c = 0
-        entry = lexer.at(p0)
-        if entry == SLIDE:
+        root = lexer.at(p0)
+        if root == SLIDE:
             p0, d, c = _slide(self, p0, d, c)[0]
-            entry = lexer.at(p0)
+            root = lexer.at(p0)
 
         self._graph = {}
-        if entry is None:
-            self._entry = None
+        if root is None:
+            self._root = None
         else:
-            self._entry = _name((p0, d, c))
+            self._root = _name((p0, d, c))
             self._parse(lexer, (p0, d, c))
 
 
-    def entry(self):
+    def root(self):
         """
-        Returns the entry point to the parsed program.  If the program is
-        trivial (that is, returns immediately with no input or output), then
-        the entry point is None.
+        Returns the root of the parse tree.  If the program is trivial (that
+        is, halts immediately with no input or output), then the root is None.
         """
-        return self._entry
+        return self._root
 
-    def node(self, state):
+    def __getitem__(self, name):
         """
-        Returns the Node associated with the input `state`, which must not be
+        Returns the Node associated with the input `name`, which must not be
         None
 
         A Node is a namedtuple consisting of:
-            * a State object (equal to input `state`),
+            * a unique name
             * a 3-character opcode, an integer n denoting PSH(n) or None
-            * a list of destination states
+            * a tuple of destination names
 
         If the 3-character opcode is "PTR" or "SWT" there will be 4 or 2
-        destinations, respectively.  If there are zero destinations, `state`
-        is a halting node.  Otherwise the node has a single destination.
+        destinations, respectively.  If there are zero destinations, the Node
+        halts.  Otherwise the node has a single destination.
         """
-        return self._graph[state]
+        return self._graph[name]
 
     def _parse(self, lexer, state):
         """
@@ -95,7 +92,8 @@ class Parser:
             op, dests = self._knock(lexer, *state)
             name = _name(state)
             dnames = tuple(_name(dest) for dest in dests)
-            self._graph[name] = Node(name, op, dnames)
+            ops = () if op == "NOP" else (op,)
+            self._graph[name] = Node(name, ops, dnames)
             for dest, dname in zip(dests, dnames):
                 if dname not in self._graph:
                     #sentinel value to moderate stack size

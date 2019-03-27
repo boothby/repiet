@@ -1,32 +1,27 @@
 from itertools import product
 import networkx as nx
-from parser import Parser
+from parser import Parser, Node
 from collections import namedtuple
-
-Trace = namedtuple('trace', ['name','ops','dests'])
 
 class Tracer:
     """
-    A tracer class for Piet.  We take the parse tree output by the Parser,
-    and compute traces.  By "trace", we mean a sequence of operations which
-    are run in that sequence.
+    A tracer class for Piet.  We take the parse tree output by the Parser, and
+    compute traces.  By "trace", we mean a sequence of operations which are
+    run in that sequence.
 
-    Where the Parser produces Nodes that may only NOP before transitioning
-    to the next Node, the Tracer simplifies the majority of these away.  A
-    Trace is a namedtuple consisting of a name, a list of operations (each
-    an int or a 3-character opcode; see parser.py), and a tuple of
-    destinations.
+    Where the Parser produces Nodes that may only NOP before transitioning to
+    the next Node, the Tracer simplifies the majority of these away.  A Trace
+    is a namedtuple consisting of a name, a list of operations (each an int or
+    a 3-character opcode; see parser.py), and a tuple of destinations.
 
     The Tracer is (necessarily) cycle-aware, and a Node's destinations may
-    contain that Node's name.  The Tracer stops on branching operations --
-    a SWT (or PTR) will have 2 (or 4) different destinations, to be chosen
-    by examining the top of the stack.  Additionally, an empty tuple of
+    contain that Node's name.  The Tracer stops on branching operations -- a
+    SWT (or PTR) will have 2 (or 4) different destinations, to be chosen by 
+    examining the top of the stack.  Additionally, an empty tuple of
     destinations halts the program.
 
-    We describe the public interface of a Tracer instance T, in two functions.
-    The first function, T.entry, returns the entry point to the program as a
-    string naming a Trace, or None.  The second function, T.node, returns a
-    Trace associated with a given name.
+    Tracers have a similar interface to Parsers -- the name of the root is
+    T.root(), and Trace objects are fetched with T[name]
 
     Tracing a parsed program takes linear time in the number of parsed Nodes,
     which is ultimately linear in the number of pixels in the image.
@@ -35,24 +30,23 @@ class Tracer:
         self._traces = {}
 
         parser = Parser(filename)
-        self._entry = parser.entry()
-        if self._entry is not None:
+        self._root = parser.root()
+        if self._root is not None:
             self._trace(parser)
 
-    def entry(self):
+    def root(self):
         """
-        Returns the entry point to the traced program.  If the program is
-        trivial (that is, returns immediately with no input or output), then
-        the entry point is None.
+        Returns the root of the the traced program.  If the program is trivial
+        (that is, returns immediately with no input or output), we return None
         """
-        return self._entry
+        return self._root
     
-    def trace(self, name):
+    def __getitem__(self, name):
         """
-        Returns the Trace associated with the input `name`, which must not be
+        Returns the Node associated with the input `name`, which must not be
         None
 
-        A Trace is a namedtuple consisting of:
+        A Node is a namedtuple consisting of:
             * a unique name,
             * a tuple of operations, each being a 3-character opcode or an int
             * a tuple of destination names
@@ -61,7 +55,7 @@ class Tracer:
         destinations, respectively.  If there are zero destinations, then the
         program halts after executing the operations.  Otherwise, there is a
         single destination and the program jumpts to that destination after
-        excuting this trace.
+        excuting this node.
         """
         return self._traces[name]
     
@@ -73,12 +67,12 @@ class Tracer:
         #still using this obnoxiously idiomatic stack construction.  think
         #of the tuple (a,b) as a linked-list datastructure, where a is data
         #and b is essentially "next" (but actually it's the rest of the stack
-        to_process = self._entry, ()
+        to_process = self._root, ()
         while to_process:
             name, to_process = to_process
-            node = parser.node(name)
+            node = parser[name]
             ops, dests = self._trace_node(parser, node)
-            traces[name] = Trace(name, tuple(ops), dests)
+            traces[name] = Node(name, tuple(ops), dests)
             for dest in dests:
                 if dest not in traces:
                     to_process = dest, to_process
@@ -106,28 +100,27 @@ class Tracer:
             if node.name in hits:
                 #oops, we've discovered a loop.  let's chop the trace in two
                 steps = hits[node.name]
-                intro = ops[:steps]
-                loop = ops[steps:]
                 #both 'loop' and 'intro' wind up going the same place
                 dests = node.name,
                 if steps:
+                    intro = ops[:steps]
+                    loop = tuple(ops[steps:])
                     #the intro is nontrivial, so we stash the looping portion
-                    self._traces[node.name] = Trace(node.name, tuple(loop), dests)
-                    #then, we return the intro (its name is remembered by _trace
+                    self._traces[node.name] = Node(node.name, loop, dests)
+                    #then, we return the intro segment
                     return intro, dests
                 else:
                     #the intro is trivial, this is just a clean loop
-                    return loop, dests
+                    return ops, dests
             elif len(node.dests) > 1:
                 #oops, we hit a branch.  record the operation and bail
-                ops.append(node.op)
+                ops.extend(node.op)
                 return ops, node.dests
             hits[node.name] = len(ops)
-            if node.op != 'NOP':
                 #no point in keeping silly NOPs around in our ops...
-                ops.append(node.op)
+            ops.extend(node.ops)
             #there's a single destination, so let's step into it
-            node = parser.node(node.dests[0])
+            node = parser[node.dests[0]]
         
 
 

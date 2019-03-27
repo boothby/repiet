@@ -1,10 +1,10 @@
-from tracer import Tracer, Trace
+from tracer import Tracer, Node
 
 class StaticEvaluator:
     """
-    A static evaluator for Piet.  We take the traces output by the Tracer, and
+    A static evaluator for Piet.  We take the Nodes output by the Tracer, and
     run them through a specialized virtual machine, producing a new set of
-    Traces.
+    Nodes.
 
     The Parser and Tracer have two types of operation,
         * int -- PSH the int onto the stack
@@ -12,18 +12,17 @@ class StaticEvaluator:
     whereas the StaticEvaluator produces another type of operation,
         * (tuple, str) -- push the tuple onto the stack, and print the string
 
-    A Trace is a namedtuple consisting of a name, a list of operations (each
+    A Node is a namedtuple consisting of a name, a list of operations (each
     an int or a 3-character opcode; see parser.py), and a tuple of
     destinations.  When the destinations are a singleton, we simply jump to
-    the trace named by that destination.  A trace ending with SWT (or PTR)
+    the node named by that destination.  A node ending with SWT (or PTR)
     will have 2 (or 4) different destinations, to be chosen by examining the
     top of the stack.  Additionally, an empty tuple of destinations halts the
     program.
 
-    We describe the public interface of a StaticEvaluator instance S, in two
-    functions.  The first function, S.entry, returns the entry point to the 
-    program as a string naming a Trace, or None.  The second function, S.node,
-    returns a Trace associated with a given name.  
+
+    StaticEvaluators have a similar interface to Parsers and Tracers -- the
+    name of the root is S.root(), and Node objects are fetched with S[name]
 
     The analysis performed by this class can take quadratic time in the total
     number of operations contained in the output of the Tracer -- which can
@@ -33,24 +32,23 @@ class StaticEvaluator:
         self._traces = {}
 
         tracer = Tracer(filename)
-        self._entry = tracer.entry()
-        if self._entry is not None:
+        self._root = tracer.root()
+        if self._root is not None:
             self._evaluate(tracer)
 
-    def entry(self):
+    def root(self):
         """
-        Returns the entry point to the traced program.  If the program is
-        trivial (that is, returns immediately with no input or output), then
-        the entry point is None.
+        Returns the root of the the program.  If the program is trivial (that
+        is, returns immediately with no input or output), we return None
         """
-        return self._entry
+        return self._root
     
-    def trace(self, name):
+    def __getitem__(self, name):
         """
-        Returns the Trace associated with the input `name`, which must not be
+        Returns the Node associated with the input `name`, which must not be
         None
 
-        A Trace is a namedtuple consisting of:
+        A Node is a namedtuple consisting of:
             * a unique name,
             * a tuple of operations, each being
                 * a 3-character opcode
@@ -62,7 +60,7 @@ class StaticEvaluator:
         destinations, respectively.  If there are zero destinations, then the
         program halts after executing the operations.  Otherwise, there is a
         single destination and the program jumpts to that destination after
-        excuting this trace.
+        excuting this node.
         """
         return self._traces[name]
 
@@ -73,12 +71,12 @@ class StaticEvaluator:
         """
         traces = self._traces
         #I'm sick of apologizing for this -- what an awesome stack!
-        to_process = self._entry, ()
+        to_process = self._root, ()
         while to_process:
             name, to_process = to_process
-            trace = tracer.trace(name)
+            trace = tracer[name]
             ops, dests = self._eval(tracer, trace)
-            traces[name] = Trace(name, tuple(ops), dests)
+            traces[name] = Node(name, tuple(ops), dests)
             for dest in dests:
                 if dest not in traces:
                     to_process = dest, to_process
@@ -88,7 +86,7 @@ class StaticEvaluator:
         Simulates a Piet interpreter running the operations of this trace,
         using a special virtual machine.  Operations whose impact cannot be
         determined at compile time, are reproduced verbatim in the returned
-        Trace.  The remainder are executed by the virtual machine, and their
+        Node.  The remainder are executed by the virtual machine, and their
         results are collected into a stack and an output string.
         """
 
@@ -108,7 +106,7 @@ class StaticEvaluator:
                 if vm is None:
                     #only start up a vm on a PSH
                     if isinstance(op, int):
-                        vm = PPVM()
+                        vm = _PPVM()
                         vm.eval(op)
                 elif not vm.eval(op): #we've got a running vm; hit it!
                     #oops, the vm couldn't perform that operation --
@@ -133,7 +131,7 @@ class StaticEvaluator:
                 else:
                     hits.add((trace.name, dest))
                     #fetch the next trace and keep going
-                    trace = tracer.trace(dest)
+                    trace = tracer[dest]
             else:
                 if vm is not None:
                     ops.append(vm.finish())
@@ -164,7 +162,7 @@ def _check(n):
         return _
     return dec
         
-class PPVM(object):
+class _PPVM(object):
     """~~~~~~~~~~ Proving Piet Virtual Machine ~~~~~~~~~
     Just like a Piet virtual machine, but buffers output
     and stops on popping an empty stack or reading input
