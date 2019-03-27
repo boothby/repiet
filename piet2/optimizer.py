@@ -108,6 +108,8 @@ class StaticEvaluator:
                     if isinstance(op, int):
                         vm = _PPVM()
                         vm.eval(op)
+                    else:
+                        ops.append(op)
                 elif not vm.eval(op): #we've got a running vm; hit it!
                     #oops, the vm couldn't perform that operation --
                     #grab its output and throw it away.
@@ -216,8 +218,6 @@ class _PPVM(object):
             #else: perform zero rolls at depth b... done!
         #else: DMM says to skip negative-depth rolls... check!
         return True
-
-
 
     #DIN and CIN take user inputs; which we obviously don't know at
     #compile time.

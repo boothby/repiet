@@ -98,11 +98,12 @@ class Tracer:
             if len(node.dests) == 0:
                 return ops, ()
             if node.name in hits:
-                #oops, we've discovered a loop.  let's chop the trace in two
-                steps = hits[node.name]
-                #both 'loop' and 'intro' wind up going the same place
+                #oops, we've discovered a loop.
+                #all cases wind up going the same place
                 dests = node.name,
+                steps = hits[node.name]
                 if steps:
+                    #nontrivial intro, let's chop the trace in two
                     intro = ops[:steps]
                     loop = tuple(ops[steps:])
                     #the intro is nontrivial, so we stash the looping portion
@@ -114,7 +115,7 @@ class Tracer:
                     return ops, dests
             elif len(node.dests) > 1:
                 #oops, we hit a branch.  record the operation and bail
-                ops.extend(node.op)
+                ops.extend(node.ops)
                 return ops, node.dests
             hits[node.name] = len(ops)
                 #no point in keeping silly NOPs around in our ops...

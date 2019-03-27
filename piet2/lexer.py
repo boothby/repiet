@@ -188,7 +188,7 @@ def _select_corner(d0, d1, c, p0, p1):
     x0, y0 = f(p0)
     x1, y1 = f(p1)
     p2 = (x0, y0) if ((
-                      (x0 == x1) and ((y1 < y0) if c^d0^d1 else (y0 < y1))
+                      (x0 == x1) and ((y1 < y0) if c^d1 else (y0 < y1))
                      ) or (
                       ((x0 < x1) if d0 else (x1 < x0))
                      )) else (x1, y1)
