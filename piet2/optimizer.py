@@ -20,7 +20,6 @@ class StaticEvaluator:
     top of the stack.  Additionally, an empty tuple of destinations halts the
     program.
 
-
     StaticEvaluators have a similar interface to Parsers and Tracers -- the
     name of the root is S.root(), and Node objects are fetched with S[name]
 

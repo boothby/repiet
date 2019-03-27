@@ -7,10 +7,10 @@ class Tracer:
     """
     A tracer class for Piet.  We take the parse tree output by the Parser, and
     compute traces.  By "trace", we mean a sequence of operations which are
-    run in that sequence.
+    run in that sequence.  These are recorded as Nodes, specified in parser.py
 
     Where the Parser produces Nodes that may only NOP before transitioning to
-    the next Node, the Tracer simplifies the majority of these away.  A Trace
+    the next Node, the Tracer simplifies the majority of these away.  A Node
     is a namedtuple consisting of a name, a list of operations (each an int or
     a 3-character opcode; see parser.py), and a tuple of destinations.
 
@@ -21,7 +21,7 @@ class Tracer:
     destinations halts the program.
 
     Tracers have a similar interface to Parsers -- the name of the root is
-    T.root(), and Trace objects are fetched with T[name]
+    T.root(), and Node objects are fetched with T[name]
 
     Tracing a parsed program takes linear time in the number of parsed Nodes,
     which is ultimately linear in the number of pixels in the image.
