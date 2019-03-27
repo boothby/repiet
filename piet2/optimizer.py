@@ -63,6 +63,11 @@ class StaticEvaluator:
         """
         return self._traces[name]
 
+    def flatten(self):
+        """
+        Returns all Node objects as an list
+        """
+        return list(self._traces.values())
 
     def _evaluate(self, tracer):
         """
@@ -100,6 +105,12 @@ class StaticEvaluator:
             dests = trace.dests
             #we skip the PTR and SWT operations here -- the vm can't handle
             #them... I promise to put it back!
+            if len(dests) <= 1:
+                traceops = trace.ops
+                final = None
+            else:
+                traceops = trace.ops[:-1]
+                final = trace.ops[-1]
             traceops = trace.ops if len(dests) <= 1 else trace.ops[:-1]
             for op in traceops:
                 if vm is None:
@@ -116,30 +127,42 @@ class StaticEvaluator:
                     ops.append(op)
                     vm = None
 
-            if vm is not None and vm.stack and len(dests) > 1:
-                #here, we've got the opportunity to simplify PTR and SWT
-                #operations -- I know I promised to "put it back" but this is
-                #my opportunity to gobble up more program.  Instead, we perform
-                #the operation and keep going.
-                i = vm.stack.pop() % len(dests)
-                dest = dests[i]
-                #and here's where we remember to be careful about going in
-                #cycles.  we can visit any given trace up to 4 times, provided
-                #that it exits to a different trace each time
-                if (trace.name, dest) in hits:
+            if vm is not None:
+                if vm.stack and len(dests) > 1:
+                    #here, we've got the opportunity to simplify PTR and SWT
+                    #operations -- I know I promised to "put it back" but this is
+                    #my opportunity to gobble up more program.  Instead, we perform
+                    #the operation and keep going.
+                    i = vm.stack.pop() % len(dests)
+                    dest = dests[i]
+                    #and here's where we remember to be careful about going in
+                    #cycles.  we can visit any given trace up to 4 times, provided
+                    #that it exits to a different trace each time
+                    if (trace.name, dest) in hits:
+                        ops.append(vm.finish())
+                        return ops, (dest,)
+                    else:
+                        hits.add((trace.name, dest))
+                        #fetch the next trace and keep going
+                        trace = tracer[dest]
+                elif final is not None:
+                    #putting it back
                     ops.append(vm.finish())
-                    return ops, (dest,)
+                    ops.append(final)                    
+                elif len(dests) == 1:
+                    dest, = dests
+                    if (trace.name, dest) in hits:
+                        ops.append(vm.finish())
+                        return ops, dests
+                    else:
+                        hits.add((trace.name, dest))
+                        trace = tracer[dest]
                 else:
-                    hits.add((trace.name, dest))
-                    #fetch the next trace and keep going
-                    trace = tracer[dest]
-            else:
-                if vm is not None:
                     ops.append(vm.finish())
-                if len(dests) == 2:
-                    ops.append("SWT")
-                elif len(dests) == 4:
-                    ops.append("PTR")
+                    return ops, dests                    
+            else:
+                if final is not None:
+                    ops.append(final)                    
                 #see, I put it back
                 return ops, dests
 
@@ -196,7 +219,7 @@ class _PPVM(object):
         """
         return tuple(self.stack), ''.join(self.outputs)
 
-    def RLL(self, a, b):
+    def RLL(self):
         #this is the most complicated part... if a roll goes below the depth
         #of the current stack, then we don't want to pop the RLL arguments.
         #this isn't worth folding into the _check decorator because it's

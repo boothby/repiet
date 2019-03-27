@@ -58,6 +58,12 @@ class Tracer:
         excuting this node.
         """
         return self._traces[name]
+
+    def flatten(self):
+        """
+        Returns all Node objects as a list
+        """
+        return list(self._traces.values())
     
     def _trace(self, parser):
         """

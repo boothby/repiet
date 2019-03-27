@@ -81,6 +81,12 @@ class Parser:
         """
         return self._graph[name]
 
+    def flatten(self):
+        """
+        Returns all node objects as a list
+        """
+        return list(self._graph.values())
+
     def _parse(self, lexer, state):
         """
         Parses the lexed program with a quick graph traversal algorithm
