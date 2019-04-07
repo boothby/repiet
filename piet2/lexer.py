@@ -5,7 +5,7 @@ from itertools import product
 SLIDE = (255, 255, 255)
 
 HL =  {(a,b,c): (3*j+k, i)
-                 for i, (x,y) in enumerate(((192, 255), (0, 255), (0,192)))
+                 for i, (x,y) in enumerate(((0,192), (0, 255), (192, 255)))
                      for j, (u,v) in enumerate(((x,y),(y,x)))
                         for k, (a,b,c) in enumerate(((v,u,u), (v,v,u), (u,v,u)))}
 

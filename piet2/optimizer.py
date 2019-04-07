@@ -98,7 +98,7 @@ class StaticEvaluator:
         ops = []
 
         #list of states we've encountered
-        hits = set()
+        hits = {(trace.name, trace.name)}
 
         vm = None
         while True:
