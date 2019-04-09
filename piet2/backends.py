@@ -5,7 +5,7 @@ class backend:
         return self.join_instructions(
             z for c in x for z in (
                 self.push(ord(c)),
-                self.instruction('UTC')
+                self.instruction('CUT')
             )
         )
 
@@ -21,16 +21,10 @@ class backend:
     def define(self, curr, dep):
         raise NotImplementedError
 
-    def exit(self):
-        raise NotImplementedError
-
     def pointer(self, options):
         raise NotImplementedError
 
     def switch(self, options):
-        raise NotImplementedError
-
-    def jump(self, next):
         raise NotImplementedError
 
     def instruction(self, i):
@@ -49,9 +43,6 @@ class cppbackend(backend):
         else:
             return "{}: {}goto {};".format(name, ops, dest)
 
-    def exit(self):
-        return "return 0;"
-
     def pointer(self, options):
         p0, p1, p2, p3 = options
         return """if (pop(a)) {
@@ -61,9 +52,6 @@ class cppbackend(backend):
     def switch(self, options):
         p0, p1 = options
         return "if (pop(a) && a&1) goto {}; goto {};".format(p1, p0);
-
-    def jump(self, next):
-        return "goto {};".format(next);
 
     def execute(self, filename, capture_output=False):
         prog = subprocess.run("g++ -o {}.out {}".format(filename, filename), shell=True)
@@ -122,17 +110,11 @@ class py3backend(backend):
         else:
             return "def {}():\n{} return {}\n".format(name, ops, dest)
 
-    def exit(self):
-        return " return\n"
-
     def pointer(self, options):
         return " a = pop()\n return [{}][0 if a is None else (a%4+4)%4]\n".format(', '.join(options))
 
     def switch(self, options):
         return " a = pop()\n return [{}][1 if a is None else a&1]\n".format(', '.join(options))
-
-    def jump(self, next):
-        return " return {}\n".format(next)
 
     def instruction(self, i):
         return {

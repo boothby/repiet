@@ -195,9 +195,11 @@ class _PPVM(object):
     cycle is encountered or an exit condition is hit.
     """
 
-    def __init__(self):
+    def __init__(self, ops=()):
         self.stack = []
         self.outputs = []
+        for op in ops:
+            self.eval(op)
 
     def eval(self, op):
         """

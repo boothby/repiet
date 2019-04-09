@@ -2,6 +2,7 @@ from parser import Parser
 from tracer import Tracer
 from optimizer import StaticEvaluator
 from backends import py3backend, cppbackend
+from pietbackend import pietbackend
 
 class compiler:
     def __init__(self, prog, back):
@@ -16,7 +17,7 @@ class compiler:
         return self._back.define(node.name, ops, 
                     dests[0] if len(dests) == 1 else None)
 
-    def __str__(self):
+    def render(self):
         try:
             return self._code
         except AttributeError:
@@ -67,8 +68,10 @@ def Compile(filename, backend, optimization_level = 9012):
         back = py3backend()
     elif backend in ('c++', 'cpp'):
         back = cppbackend()
+    elif backend in ('piet', ):
+        back = pietbackend()
     else:
         raise NotImplementedError("backend is not implemented")
 
-    return str(compiler(prog, back))
+    return compiler(prog, back).render()
 
