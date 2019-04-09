@@ -436,18 +436,26 @@ def _const(x):
     else:
         op = 'ADD'
 
-    while x:    
-        if x%2:
+    while x:
+        if x == 1:
+            if op == 'SBT':
+                T.append((1, 'NOT', 1, op))
+            else:
+                T.append((1,))
+        elif x == 0:
+            T.append((1, 'NOT'))
+  
+        elif x%2:
             T.append(('DPL', 'ADD', 1, op))
         else:
             T.append(('DPL', 'ADD'))
         x = x//2
 
-    return sum(T[::-1], (1,'NOT'))
+    return sum(T[::-1], ())
 
 
 if __name__=='__main__':
     import compiler, sys
     with open("aaab.ppm", 'wb') as f:f.write(compiler.Compile('../tests/pointer%s.png'%sys.argv[1], 'piet', optimization_level=0))
-    print(compiler.Compile('aaab.ppm', 'py', optimization_level=2))
+    print(compiler.Compile('aaab.ppm', 'py', optimization_level=0))
 
