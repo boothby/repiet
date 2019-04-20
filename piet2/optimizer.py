@@ -198,8 +198,9 @@ class _PPVM(object):
     def __init__(self, ops=()):
         self.stack = []
         self.outputs = []
-        for op in ops:
-            self.eval(op)
+        for i, op in enumerate(ops):
+            if not self.eval(op):
+                raise RuntimeError('failed to evaluate\n%s\n%s\n%s'%(ops, (i, op), self.stack))
 
     def eval(self, op):
         """
