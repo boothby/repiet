@@ -138,7 +138,7 @@ class Parser:
                         tuple((q,(d+i)%4,c) for i in (0,1,2,3)) if op == 'PTR' else
                         ((q, d, c),))
 
-    def _slide(self, lexer, p, d, c, patience=frozenset()):
+    def _slide(self, lexer, p, d, c, trail=frozenset()):
         """
         Simulates a Piet interpreter sliding through whitespace.  If a block
         is encountered, it is returned in a singleton tuple.  Otherwise, the
@@ -152,10 +152,20 @@ class Parser:
         #examine the image contents at r
         b = lexer.at(r)
 
-        if b is None:
-            #either q was out of bounds, or there's a blocking pixel at q
-            #advance DP and CC, and recurse with 1 unit less patience
-            return self._slide(lexer, q, (d+1)%4, c^1, patience-1) if patience else ()
+        state = p, d, c
+        if state in trail:
+            #common mis-implementation addressed by DMM's clarification:
+            #   ...or until the interpreter begins retracing its route. If it
+            #   retraces its route entirely within a white block, there is no
+            #   way out of the white block and execution should terminate.
+            #here, we've encountered such a loop, and we terminate.
+            return ()
+        elif b is None:
+            #either r was out of bounds, or there's a blocking pixel at r
+            #advance DP and CC, and recurse with updated trail.
+            #TODO: malicious inputs to this function can blow the stack;
+            #      de-recurse this function.
+            return self._slide(lexer, q, (d+1)%4, c^1, trail.union({state}))
         elif b == _SLIDE:
             #this shouldn't happen
             raise RuntimeError(("Bug in Lexer -- {} and {} are adjacent pixels in"
