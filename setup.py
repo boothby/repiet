@@ -4,26 +4,23 @@ import sys
 import os
 from setuptools import setup
 
-# add __version__, __author__, __authoremail__, __description__ to this namespace
-_PY2 = sys.version_info.major == 2
-
 # change directories so this works when called from other locations. Useful in build systems.
 setup_folder_loc = os.path.dirname(os.path.abspath(__file__))
 os.chdir(setup_folder_loc)
 
-install_requires = ['networkx', 'Pillow']
+install_requires = ['Pillow']
 
-packages = ['piet2']
+packages = ['repiet', 'repiet._backends']
 
-scripts = ['bin/piet2']
+scripts = ['bin/repiet']
 
 setup(
-    name='piet2',
+    name='repiet',
     version='0.0.0',
     author='Kelly Boothby',
     author_email='',
     description='A Piet compiler, targeting a variety of other languages',
-    url='https://github.com/boothby/piet2',
+    url='https://github.com/boothby/repiet',
     packages=packages,
     scripts=scripts,
     install_requires=install_requires,

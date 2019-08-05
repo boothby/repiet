@@ -1,17 +1,7 @@
-from collections import namedtuple
-from PIL import Image
-from itertools import product
-from lexer import Lexer, SLIDE, HL
+from repiet.util import SLIDE as _SLIDE, HL as _HL, Node as _Node
+from repiet.lexer import Lexer as _Lexer
 
-
-Node = namedtuple('node', ['name', 'ops', 'dests'])
-
-OP = [["NOP", "PSH", "POP"],
-      ["ADD", "SBT", "MLT"],
-      ["DVD", "MOD", "NOT"],
-      ["GRT", "PTR", "SWT"],
-      ["DPL", "RLL", "DIN"],
-      ["CIN", "DUT", "CUT"]]
+__all__ = ["Parser"]
 
 class Parser:
     """
@@ -42,11 +32,11 @@ class Parser:
     lexer.  Discards the Lexer after initialization, to minimize memory use.
     """
     def __init__(self, filename):
-        lexer = Lexer(filename)
+        lexer = _Lexer(filename)
         p0 = 0, 0
         d = c = 0
         root = lexer.at(p0)
-        if root == SLIDE:
+        if root == _SLIDE:
             p0, d, c = _slide(self, p0, d, c)[0]
             root = lexer.at(p0)
 
@@ -99,7 +89,7 @@ class Parser:
             name = _name(state)
             dnames = tuple(_name(dest) for dest in dests)
             ops = () if op == "NOP" else (op,)
-            self._graph[name] = Node(name, ops, dnames)
+            self._graph[name] = _Node(name, ops, dnames)
             for dest, dname in zip(dests, dnames):
                 if dname not in self._graph:
                     #sentinel value to moderate stack size
@@ -130,7 +120,7 @@ class Parser:
             #advance either DP or CC, and recurse with 1 unit less patience
             return self._knock(lexer, p, (d+1)%4, c, patience-1) if patience % 2 else (
                    self._knock(lexer, p, d, c^1, patience-1) if patience > 0 else ('NOP', ()))
-        elif b1 == SLIDE:
+        elif b1 == _SLIDE:
             #q is in a sliding region -- slide on through, and either NOP
             #over to the next block or quit
             return "NOP", self._slide(lexer, q, d, c)
@@ -138,8 +128,8 @@ class Parser:
             #q has a different programming color.  An interpreter would emit
             #an instruction and slide into b1.  We enumerate the destination
             #states, to be consumed by a compiler.
-            h0,l0 = HL[b0.color]
-            h1,l1 = HL[b1.color]
+            h0,l0 = _HL[b0.color]
+            h1,l1 = _HL[b1.color]
             #DMM's instructions are based in hue and darkness... awkward
             op = OP[(h1-h0)%6][(l0-l1)%3]
             if op == "PSH":
@@ -148,7 +138,7 @@ class Parser:
                         tuple((q,(d+i)%4,c) for i in (0,1,2,3)) if op == 'PTR' else
                         ((q, d, c),))
 
-    def _slide(self, lexer, p, d, c, patience=4):
+    def _slide(self, lexer, p, d, c, patience=frozenset()):
         """
         Simulates a Piet interpreter sliding through whitespace.  If a block
         is encountered, it is returned in a singleton tuple.  Otherwise, the
@@ -166,7 +156,7 @@ class Parser:
             #either q was out of bounds, or there's a blocking pixel at q
             #advance DP and CC, and recurse with 1 unit less patience
             return self._slide(lexer, q, (d+1)%4, c^1, patience-1) if patience else ()
-        elif b == SLIDE:
+        elif b == _SLIDE:
             #this shouldn't happen
             raise RuntimeError(("Bug in Lexer -- {} and {} are adjacent pixels in"
                                 "different sliding regions").format(q, r))

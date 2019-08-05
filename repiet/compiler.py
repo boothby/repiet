@@ -1,8 +1,7 @@
-from parser import Parser
-from tracer import Tracer
-from optimizer import StaticEvaluator
-from backends import py3backend, cppbackend
-from pietbackend import pietbackend
+from repiet.parser import Parser as _Parser
+from repiet.tracer import Tracer as _Tracer
+from repiet.optimizer import StaticEvaluator as _StaticEvaluator
+from repiet.backends import py3backend as _py3backend, cppbackend as _cppbackend, pietbackend as _pietbackend
 
 class compiler:
     def __init__(self, prog, back):
@@ -58,18 +57,18 @@ class compiler:
 
 def Compile(filename, backend, optimization_level = 9012):
     if optimization_level <= 0:
-        prog = Parser(filename)
+        prog = _Parser(filename)
     elif optimization_level == 1:
-        prog = Tracer(filename)
+        prog = _Tracer(filename)
     elif optimization_level > 1:
-        prog = StaticEvaluator(filename)
+        prog = _StaticEvaluator(filename)
 
     if backend in ('py', 'py3'):
-        back = py3backend()
+        back = _py3backend()
     elif backend in ('c++', 'cpp'):
-        back = cppbackend()
+        back = _cppbackend()
     elif backend in ('piet', ):
-        back = pietbackend()
+        back = _pietbackend()
     else:
         raise NotImplementedError("backend is not implemented")
 

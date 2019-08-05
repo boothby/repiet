@@ -1,7 +1,6 @@
+from repiet._backends.generic import backend
 import numpy as np
-from parser import OP
-from lexer import HL
-from backends import backend
+from repiet.util import OP, HL
 from itertools import chain
 
 base = np.array((0xc0, 0, 0xc0), np.uint8)

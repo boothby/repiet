@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import argparse
 import sys
-import piet2
+import repiet
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -18,15 +18,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.backend == 'c++':
-        from piet2.backends import cppbackend as backend
+        from repiet.backends import cppbackend as backend
     elif args.backend == 'python':
-        from piet2.backends import pybackend as backend
+        from repiet.backends import pybackend as backend
     backend=backend()
 
     if args.optimize:
-        from piet2.optimizer import Optimizer as builder
+        from repiet.optimizer import Optimizer as builder
     else:
-        from piet2.compiler import Compiler as builder
+        from repiet.compiler import Compiler as builder
 
     c = builder(args.source, backend)
     prog = c.compile(args.target)

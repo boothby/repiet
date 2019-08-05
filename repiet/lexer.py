@@ -1,15 +1,9 @@
-from collections import namedtuple
-from PIL import Image
-from itertools import product
+from PIL import Image as _Image
+from itertools import product as _product
+from repiet.util import Lexeme as _Lexeme
 
-SLIDE = (255, 255, 255)
+__all__ = ["Lexer"]
 
-HL =  {(a,b,c): (3*j+k, i)
-                 for i, (x,y) in enumerate(((0,192), (0, 255), (192, 255)))
-                     for j, (u,v) in enumerate(((x,y),(y,x)))
-                        for k, (a,b,c) in enumerate(((v,u,u), (v,v,u), (u,v,u)))}
-
-Lexeme = namedtuple('lexeme', ['name', 'corners', 'size', 'color'])
 class Lexer:
     """
     A lexer class for Piet.  In text languages, a lexer identifies tokens so
@@ -61,7 +55,7 @@ class Lexer:
         self._lexeme = {}
         find = self._find
 
-        image = Image.open(filename).convert("RGB")
+        image = _Image.open(filename).convert("RGB")
         self.X, self.Y = image.size
         self._lex(image)
 
@@ -105,7 +99,7 @@ class Lexer:
         # a more-or-less standard DisjointSets datastructure. it's fairly
         # well-known that rank can be used to compute set sizes (valid only
         # at roots) -- we use the same trick to compute the "corners"
-        for p in product(range(X), range(Y)):
+        for p in _product(range(X), range(Y)):
             x, y = p
             color = getcolor(p)
             for q, z, Z, d0, d1 in [((x+1, y), x, X-1, 2, 0),
@@ -133,9 +127,9 @@ class Lexer:
                 corners[p] = {(d, c): p for d in (0, 1, 2, 3) for c in (0, 1)}
 
         lexemes = self._lexeme
-        for p in product(range(X), range(Y)):
+        for p in _product(range(X), range(Y)):
             if p == parent.get(p):
-                lexemes[p] = Lexeme(p, corners[p], rank[p], getcolor(p))
+                lexemes[p] = _Lexeme(p, corners[p], rank[p], getcolor(p))
 
     def _find(self, p0, rank = None):
         """ mostly standard find... but rank is ephemeral and we only

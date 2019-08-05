@@ -1,7 +1,5 @@
-from itertools import product
-import networkx as nx
-from parser import Parser, Node
-from collections import namedtuple
+from repiet.parser import Parser as _Parser
+from repiet.util import Node as _Node
 
 class Tracer:
     """
@@ -29,7 +27,7 @@ class Tracer:
     def __init__(self, filename):
         self._traces = {}
 
-        parser = Parser(filename)
+        parser = _Parser(filename)
         self._root = parser.root()
         if self._root is not None:
             self._trace(parser)
@@ -78,7 +76,7 @@ class Tracer:
             name, to_process = to_process
             node = parser[name]
             ops, dests = self._trace_node(parser, node)
-            traces[name] = Node(name, tuple(ops), dests)
+            traces[name] = _Node(name, tuple(ops), dests)
             for dest in dests:
                 if dest not in traces:
                     to_process = dest, to_process

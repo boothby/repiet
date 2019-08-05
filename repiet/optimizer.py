@@ -1,4 +1,5 @@
-from tracer import Tracer, Node
+from repiet.tracer import Tracer as _Tracer
+from repiet.util import Node as _Node
 
 class StaticEvaluator:
     """
@@ -30,7 +31,7 @@ class StaticEvaluator:
     def __init__(self, filename):
         self._traces = {}
 
-        tracer = Tracer(filename)
+        tracer = _Tracer(filename)
         self._root = tracer.root()
         if self._root is not None:
             self._evaluate(tracer)
@@ -80,7 +81,7 @@ class StaticEvaluator:
             name, to_process = to_process
             trace = tracer[name]
             ops, dests = self._eval(tracer, trace)
-            traces[name] = Node(name, tuple(ops), dests)
+            traces[name] = _Node(name, tuple(ops), dests)
             for dest in dests:
                 if dest not in traces:
                     to_process = dest, to_process
