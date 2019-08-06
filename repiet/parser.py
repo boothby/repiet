@@ -1,4 +1,4 @@
-from repiet.util import SLIDE as _SLIDE, HL as _HL, Node as _Node
+from repiet.util import SLIDE as _SLIDE, HL as _HL, Node as _Node, OP as _OP
 from repiet.lexer import Lexer as _Lexer
 
 __all__ = ["Parser"]
@@ -131,7 +131,7 @@ class Parser:
             h0,l0 = _HL[b0.color]
             h1,l1 = _HL[b1.color]
             #DMM's instructions are based in hue and darkness... awkward
-            op = OP[(h1-h0)%6][(l0-l1)%3]
+            op = _OP[(h1-h0)%6][(l0-l1)%3]
             if op == "PSH":
                 op = b0.size
             return op, ((q, d, c), (q, d, c^1)) if op == 'SWT' else (

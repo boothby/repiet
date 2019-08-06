@@ -4,7 +4,7 @@ import subprocess
 class cppbackend(backend):
     def define(self, name, ops, dest):
         if dest is None:
-            return "{}: {}".format(name, ops)
+            return "{}: {};return 0;".format(name, ops)
         else:
             return "{}: {}goto {};".format(name, ops, dest)
 
@@ -48,6 +48,10 @@ class cppbackend(backend):
          }[i]
 
     def render(self, defs, start):
+        if start is None:
+            defs = ""
+            start = "return 0;"
+
         return """#include <vector>
 #include <iostream>
 using namespace std;
@@ -61,8 +65,9 @@ void rll(int x, int y) {
  if (x == 0) return;
  int z = (x<0)?x+y:-x+y;
  vector<int> t(y);
- copy(d.end()+z, d.end(), t.begin());
- copy(d.end()-y, d.end()+z, t.begin()-z);
+ copy(d.end()-y, d.end()-z, t.end()-z);
+ copy(d.end()-y+z, d.end(), t.begin());
+ copy(t.begin(), t.end(), d.end()-y);
 }
 int main() {
 int t=0,i=0,a,b;

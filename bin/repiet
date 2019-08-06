@@ -2,34 +2,53 @@
 import argparse
 import sys
 import repiet
+import tempfile
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser(description='Compile or execute a Piet program.')
     parser.add_argument('source', type=str, help = 'source image')
-    parser.add_argument('target', type=str, help = 'output filename')
-    parser.add_argument('--backend', type=str, 
-        choices=['c++', 'python'],
+    parser.add_argument('--target', type=str, help = 'output filename', required = False)
+    parser.add_argument('--backend', type=str, required = True,
+        choices=['c++', 'python', 'piet'],
         default='python', help = 'language to compile to')
-    parser.add_argument('--optimize', action='store_true', 
-        default=False, help = '')
+    parser.add_argument('--optimize', default=0, type=int, help = '')
     parser.add_argument('--execute', action='store_true', 
         default=False, help = '')
 
     args = parser.parse_args()
 
+    mode = 'w'
     if args.backend == 'c++':
         from repiet.backends import cppbackend as backend
+        ext = '.cpp'
     elif args.backend == 'python':
-        from repiet.backends import pybackend as backend
+        from repiet.backends import py3backend as backend
+        ext = '.py'
+    elif args.backend == 'piet':
+        from repiet.backends import pietbackend as backend
+        ext = '.ppm'
+        mode = 'wb'
+    else:
+        raise RuntimeError("Bug in repiet: 'backend' should be a required parameter but we got here")
+
+    if args.target is None:
+        target = "".join((args.source, ext))
+    else:
+        target = args.target
+
     backend=backend()
 
-    if args.optimize:
-        from repiet.optimizer import Optimizer as builder
+    if args.optimize <= 0:
+        prog = repiet.parser.Parser(args.source)
+    elif args.optimize == 1:
+        prog = repiet.tracer.Tracer(args.source)
     else:
-        from repiet.compiler import Compiler as builder
+        prog = repiet.optimizer.StaticEvaluator(args.source)
 
-    c = builder(args.source, backend)
-    prog = c.compile(args.target)
+    compiler = repiet.compiler.compiler(prog, backend)
+    with open(target, mode) as outfile:
+        outfile.write(compiler.render())    
 
     if args.execute:
-        backend.execute(args.target)
+        backend.execute(target)
+

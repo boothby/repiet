@@ -1,6 +1,6 @@
 from PIL import Image as _Image
 from itertools import product as _product
-from repiet.util import Lexeme as _Lexeme
+from repiet.util import Lexeme as _Lexeme, SLIDE as _SLIDE, HL as _HL
 
 __all__ = ["Lexer"]
 
@@ -64,7 +64,7 @@ class Lexer:
         """Returns SLIDE if p is in a sliding region, the block containing
         p if there is one, and None otherwise -- p can be None or (x,y)"""
         if (p, 2) in self._slide:
-            return SLIDE
+            return _SLIDE
         elif p in self._parent:
             return self._lexeme[self._find(p)]
         else:
@@ -106,22 +106,22 @@ class Lexer:
                                     ((x, y+1), y, Y-1, 3, 1)]:
                                                          #production rules W=white, X=anything but white, C=specific color
                 if z >= Z:                               #pq: definition... runtime analysis for data structure use
-                    if color == SLIDE:                   #---------------------------------------------------------------
+                    if color == _SLIDE:                   #---------------------------------------------------------------
                         slide[slide[p, d0], d1] = p      #W|: right(left(x, y)) := (x, y)
                     continue
-                elif z == 0 and color == SLIDE:
+                elif z == 0 and color == _SLIDE:
                     slide[(p, d0)] = p                   #|W: left(x, y) := (x, y)
                 color1 = image.getpixel((q[0],q[1]))
-                if color == SLIDE:
-                    if color1 == SLIDE:
+                if color == _SLIDE:
+                    if color1 == _SLIDE:
                         slide[q, d0] = slide[(p, d0)]    #WW: left(x+1, y) := left(x, y) 
                     else:
                         slide[slide[(p, d0)], d1] = p    #WX: right(left(x, y)) := (x, y) ... only left(x,y) has cache thus right is O(left)
-                elif color1 == SLIDE:
+                elif color1 == _SLIDE:
                     slide[q, d0] = q                     #XW: left(x, y) := (x, y) ... each (x, y) has cache thus left is O(1)
-                elif color1 == color and color in HL:
+                elif color1 == color and color in _HL:
                     union(p, q, rank, corners)           #CC: merge programming pixels of blocks ... amortized O(\alpha(XY))
-            if color in HL and p not in parent:
+            if color in _HL and p not in parent:
                 parent[p] = p
                 rank[p] = 1
                 corners[p] = {(d, c): p for d in (0, 1, 2, 3) for c in (0, 1)}

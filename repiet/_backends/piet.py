@@ -2,6 +2,7 @@ from repiet._backends.generic import backend
 import numpy as np
 from repiet.util import OP, HL
 from itertools import chain
+import subprocess
 
 base = np.array((0xc0, 0, 0xc0), np.uint8)
 operate = np.array((0, 0xc0, 0), np.uint8)
@@ -413,7 +414,7 @@ class pietbackend(backend):
 
     def execute(self, filename, capture_output=False):
         args = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE) if capture_output else {}
-        prog = subprocess.run("python {}".format(filename), *args, shell=True)
+        prog = subprocess.run("repiet {} --backend python --execute".format(filename), *args, shell=True)
         if capture_output:
             return prog.stdout, prog.stderr
 

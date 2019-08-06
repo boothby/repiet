@@ -48,8 +48,9 @@ class py3backend(backend):
             return " stack.extend({})\n".format(repr(x)) 
 
     def render(self, defs, start):
-        import autopep8
-        return autopep8.fix_code("".join(("""stack = []
+        if start is None:
+            return ""
+        return "".join(("""stack = []
 def psh(*X): stack.extend(X)
 def pop(): return stack.pop() if stack else None
 def pop2(): return (None, None) if len(stack) < 2 else (stack.pop(), stack.pop())
@@ -63,11 +64,11 @@ if __name__ == "__main__":
     bounce = """, start, """
     while bounce is not None:
         bounce = bounce()
-""")))
+"""))
 
     def execute(self, filename, capture_output=False):
         args = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE) if capture_output else {}
-        prog = subprocess.run("python {}".format(filename), *args, shell=True)
+        prog = subprocess.run("python3 {}".format(filename), *args, shell=True)
         if capture_output:
             return prog.stdout, prog.stderr
 
