@@ -24,10 +24,10 @@ class Tracer:
     Tracing a parsed program takes linear time in the number of parsed Nodes,
     which is ultimately linear in the number of pixels in the image.
     """
-    def __init__(self, filename):
+    def __init__(self, filename, **opinions):
         self._traces = {}
 
-        parser = _Parser(filename)
+        parser = _Parser(filename, **opinions)
         self._root = parser.root()
         if self._root is not None:
             self._trace(parser)

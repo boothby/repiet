@@ -55,13 +55,13 @@ class compiler:
         else:
             raise RuntimeError("Unfamiliar operation")
 
-def Compile(filename, backend, optimization_level = 9012):
+def Compile(filename, backend, optimization_level = 9012, **opinions):
     if optimization_level <= 0:
-        prog = _Parser(filename)
+        prog = _Parser(filename, **opinions)
     elif optimization_level == 1:
-        prog = _Tracer(filename)
+        prog = _Tracer(filename, **opinions)
     elif optimization_level > 1:
-        prog = _StaticEvaluator(filename)
+        prog = _StaticEvaluator(filename, **opinions)
 
     if backend in ('py', 'py3'):
         back = _py3backend()

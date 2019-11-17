@@ -5,17 +5,33 @@ import repiet
 import tempfile
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Compile or execute a Piet program.')
+    #Determine if the user has asked for --help.  If not, we hide certain
+    #arguments to keep usage / help simple.  This could probably be done
+    #with custom formatters, but the approach here is nice and tidy.
+    helpparser = argparse.ArgumentParser(description='determine if the user asked for help', add_help=False)
+    helpparser.add_argument('--help', action='store_true', dest='longhelp')
+    longhelp = helpparser.parse_known_args()[0].longhelp
+
+    parser = argparse.ArgumentParser(description='Compile or execute a Piet program.',
+                                     epilog='' if longhelp else 'Additional arguments available with --help')
     parser.add_argument('source', type=str, help = 'source image')
     parser.add_argument('--target', type=str, help = 'output filename', required = False)
-    parser.add_argument('--backend', type=str, required = True,
-        choices=['c++', 'python', 'piet'],
+    parser.add_argument('--backend', type=str,
+        choices=('c++', 'python', 'piet'),
         default='python', help = 'language to compile to')
-    parser.add_argument('--optimize', default=0, type=int, help = '')
+    parser.add_argument('--optimize', default=0, type=int, help='optimization level')
     parser.add_argument('--execute', action='store_true', 
-        default=False, help = '')
+        default=False, help = 'execute the compilation product')
+
+    opinionparser = parser.add_argument_group('parsing/lexing arguments')
+    for (op, args) in repiet.util.opinion_options.items():
+        args['default'] = argparse.SUPPRESS
+        if op != 'codel_size' and not longhelp:
+            args['help'] = argparse.SUPPRESS
+        opinionparser.add_argument('--'+op, **args)
 
     args = parser.parse_args()
+    opinions = {k:v for (k,v) in vars(args).items() if k in repiet.util.opinion_options}
 
     mode = 'w'
     if args.backend == 'c++':
@@ -29,7 +45,7 @@ if __name__ == '__main__':
         ext = '.ppm'
         mode = 'wb'
     else:
-        raise RuntimeError("Bug in repiet: 'backend' should be a required parameter but we got here")
+        raise RuntimeError("Bug! 'backend' should be a required parameter but we got here")
 
     if args.target is None:
         target = "".join((args.source, ext))
@@ -39,11 +55,11 @@ if __name__ == '__main__':
     backend=backend()
 
     if args.optimize <= 0:
-        prog = repiet.parser.Parser(args.source)
+        prog = repiet.parser.Parser(args.source, **opinions)
     elif args.optimize == 1:
-        prog = repiet.tracer.Tracer(args.source)
+        prog = repiet.tracer.Tracer(args.source, **opinions)
     else:
-        prog = repiet.optimizer.StaticEvaluator(args.source)
+        prog = repiet.optimizer.StaticEvaluator(args.source, **opinions)
 
     compiler = repiet.compiler.compiler(prog, backend)
     with open(target, mode) as outfile:

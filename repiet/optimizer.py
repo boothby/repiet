@@ -28,10 +28,10 @@ class StaticEvaluator:
     number of operations contained in the output of the Tracer -- which can
     ultimately be linear in the number of pixels contained in the image.
     """
-    def __init__(self, filename):
+    def __init__(self, filename, **opinions):
         self._traces = {}
 
-        tracer = _Tracer(filename)
+        tracer = _Tracer(filename, **opinions)
         self._root = tracer.root()
         if self._root is not None:
             self._evaluate(tracer)

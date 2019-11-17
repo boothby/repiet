@@ -1,4 +1,4 @@
-from repiet.util import SLIDE as _SLIDE, HL as _HL, Node as _Node, OP as _OP
+from repiet.util import SLIDE as _SLIDE, HL as _HL, Node as _Node, OP as _OP, default_opinions as _default_opinions
 from repiet.lexer import Lexer as _Lexer
 
 __all__ = ["Parser"]
@@ -31,14 +31,17 @@ class Parser:
     depth-first search beginning at the root, processing nodes found by the
     lexer.  Discards the Lexer after initialization, to minimize memory use.
     """
-    def __init__(self, filename):
-        lexer = _Lexer(filename)
+    def __init__(self, filename, **opinions):
+        lexer = _Lexer(filename, **opinions)
         p0 = 0, 0
         d = c = 0
         root = lexer.at(p0)
         if root == _SLIDE:
             p0, d, c = _slide(self, p0, d, c)[0]
             root = lexer.at(p0)
+
+        self._opinions = _default_opinions(**opinions)
+        self._process_opinions()
 
         self._graph = {}
         if root is None:
@@ -110,20 +113,31 @@ class Parser:
         """
         #retrieve the block at p
         b0 = lexer.at(p)
+        if b0 == _SLIDE:
+            #this occurs for the "nonhalting" sliding opinion
+            return "NOP", (p, d, c)
+
         #identify the (d,p)-most corner of b0, and step one pixel d-ward
-        q = _next(b0.corners[d, c], d)
+        q = self._next(b0.corners[d, c], d)
         #examine the image contents at q
         b1 = lexer.at(q)
+
+        if b1 == _SLIDE:
+            #q is in a sliding region -- slide on through, and either NOP
+            #over to the next block or quit
+            slid = self._slide(lexer, q, d, c)
+            if slid == 'timid':
+                b1 = None
+            else:
+                if slid == 'hang':
+                    slid = (p, d, c),
+                return "NOP", slid
 
         if b1 is None:
             #either q was out of bounds, or there's a blocking pixel at q.
             #advance either DP or CC, and recurse with 1 unit less patience
             return self._knock(lexer, p, (d+1)%4, c, patience-1) if patience % 2 else (
                    self._knock(lexer, p, d, c^1, patience-1) if patience > 0 else ('NOP', ()))
-        elif b1 == _SLIDE:
-            #q is in a sliding region -- slide on through, and either NOP
-            #over to the next block or quit
-            return "NOP", self._slide(lexer, q, d, c)
         else:
             #q has a different programming color.  An interpreter would emit
             #an instruction and slide into b1.  We enumerate the destination
@@ -131,55 +145,92 @@ class Parser:
             h0,l0 = _HL[b0.color]
             h1,l1 = _HL[b1.color]
             #DMM's instructions are based in hue and darkness... awkward
-            op = _OP[(h1-h0)%6][(l0-l1)%3]
+            op = self._OP[(h1-h0)%6][(l0-l1)%3]
             if op == "PSH":
                 op = b0.size
             return op, ((q, d, c), (q, d, c^1)) if op == 'SWT' else (
                         tuple((q,(d+i)%4,c) for i in (0,1,2,3)) if op == 'PTR' else
                         ((q, d, c),))
 
-    def _slide(self, lexer, p, d, c, trail=frozenset()):
+    def _slide(self, lexer, p, d, c):
         """
         Simulates a Piet interpreter sliding through whitespace.  If a block
         is encountered, it is returned in a singleton tuple.  Otherwise, the
         interpreter gets trapped in the sliding region and terminates -- we
         return an empty tuple.
         """
-        #Slides d-ward from the pixel at p.
-        q = lexer.slide(p, d)
-        #Go one step d-ward from q
-        r = _next(q, d)
-        #examine the image contents at r
-        b = lexer.at(r)
+        trail = set()
+        stopslide = self._stopslide
+        while 1:
+            t = stopslide((p, d, c), trail)
+            if t is not None:
+                return t
 
-        state = p, d, c
-        if state in trail:
-            #common mis-implementation addressed by DMM's clarification:
-            #   ...or until the interpreter begins retracing its route. If it
-            #   retraces its route entirely within a white block, there is no
-            #   way out of the white block and execution should terminate.
-            #here, we've encountered such a loop, and we terminate.
-            return ()
-        elif b is None:
-            #either r was out of bounds, or there's a blocking pixel at r
-            #advance DP and CC, and recurse with updated trail.
-            #TODO: malicious inputs to this function can blow the stack;
-            #      de-recurse this function.
-            return self._slide(lexer, q, (d+1)%4, c^1, trail.union({state}))
-        elif b == _SLIDE:
-            #this shouldn't happen
-            raise RuntimeError(("Bug in Lexer -- {} and {} are adjacent pixels in"
-                                "different sliding regions").format(q, r))
-        else:
-            #we found a block!
-            return (r, d, c),
+            #Slides d-ward from the pixel at p.
+            q = lexer.slide(p, d)
+            #Go one step d-ward from q
+            r = self._next(q, d)
+            #examine the image contents at r
+            b = lexer.at(r)
 
-def _next(q, d):
-    """The next d-ward point from (x, y) -- does not respect boundaries"""
-    x, y = q
-    return (x+1, y) if d == 0 else (
-           (x, y+1) if d == 1 else (
-           (x-1, y) if d == 2 else (x, y-1)))
+            if b is None:
+                #either r was out of bounds, or there's a blocking pixel at r
+                #advance DP and CC, and recurse with updated trail.
+                d = (d+1)%4
+                c^= 1
+                p = q
+            elif b == _SLIDE:
+                #this shouldn't happen
+                raise RuntimeError(("Bug in Lexer -- {} and {} are adjacent pixels"
+                                    "in different sliding regions").format(q, r))
+            else:
+                #we found a block!
+                return (r, d, c),
+
+    def _process_opinions(self):
+        """Process the opinions dictionary to ensure that the behavior of
+        this class is appropriate.  A more standard approach would be to
+        use a factory which dispatches class mixins.  Maybe later."""
+        cs = self._opinions['codel_size']
+        def next(_self, p, d):
+            """The next d-ward point from p=(x, y) -- does not respect boundaries"""
+            x, y = p
+            return (x+cs, y) if d == 0 else (
+                   (x, y+cs) if d == 1 else (
+                   (x-cs, y) if d == 2 else (x, y-cs)))
+
+        #this is how one binds methods to instances? TIL
+        self._next = next.__get__(self, self.__class__)
+
+        #common mis-implementation addressed by DMM's clarification:
+        #   ...or until the interpreter begins retracing its route. If it
+        #   retraces its route entirely within a white block, there is no
+        #   way out of the white block and execution should terminate.
+        #so we've added a few opinions -- 'halting' is correct;
+        #'nonhalting' and 'timid' exist to model other interpreters 
+        if self._opinions['sliding'] == 'halting':
+            def stopslide(s, state, trail):
+                if state in trail:
+                    return ()
+                trail.add(state)
+        elif self._opinions['sliding'] == 'nonhalting':
+            def stopslide(s, state, trail):
+                if state in trail:
+                    return 'hang'
+                trail.add(state)
+        elif self._opinions['sliding'] == 'timid':
+            def stopslide(s, state, trail):
+                if trail:
+                    return 'timid'
+                trail.add(state)
+        
+        #Annoying mis-implementation... some folks get hue and/or lightness
+        # changes backwards
+        _op = _OP[::-1] if self._opinions['color_dir_h'] == '+' else _OP
+        self._OP = [op[::-1] for op in _op] if self._opinions['color_dir_l'] == '+' else _op
+
+        self._stopslide = stopslide.__get__(self, self.__class__)
+
 
 def _name(state):
     """Makes a unique string for a given state"""
