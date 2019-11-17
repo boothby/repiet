@@ -162,28 +162,19 @@ class Lexer:
         corners[root] = _squash_corners(root, prev, corners)
 
 def _squash_corners(p0, p1, corners):
-    """compute the corners of the just-merged roots p0 and p1 
-    returns a dictionary, to be inserted into self._corner at the
+    """compute the corners of the just-merged roots p0 and p1.
+    returns a dictionary, to be inserted into corners at the
     new root"""
-
     K0 = corners.get(p0, {})
     K1 = corners.get(p1, {})
-    return { (d, c) : _select_corner(d0, d1, c, K0.get((d,c), p0), K1.get((d,c), p1)) 
-        for d, (d0, d1) in enumerate ((d0,d1) for d0 in (0,1) for d1 in (0,1))
-        for c in (0,1) }
+    return { (d, c) : _select_corner(d, c, K0.get((d,c), p0), K1.get((d,c), p1))
+        for d in (0,1,2,3) for c in (0,1) }
 
-def _select_corner(d0, d1, c, p0, p1):
-    """ return the (d0+2*d1, c)-most of the two points p0, p1
-    okay and let's be honest this code is like woah.  I just
-    wrote it in the tightest form I could imagine, and tweaked
-    it until it was correct.
-    """
-    f = (lambda p: (p[1], p[0])) if d1 else (lambda p: p) 
-    x0, y0 = f(p0)
-    x1, y1 = f(p1)
-    p2 = (x0, y0) if ((
-                      (x0 == x1) and ((y1 < y0) if c^d1 else (y0 < y1))
-                     ) or (
-                      ((x0 < x1) if d0 else (x1 < x0))
-                     )) else (x1, y1)
-    return f(p2)
+_cornertable = [0xd0e0c, 0x3f24, 0x323130, 0x3f0018]
+def _select_corner(d, c, p, q):
+    """return the (d, c)-most of the two points p and q."""
+    #Uhhh... yeah, packing this into a lookup table is obtuse.
+    #request an apology from /dev/urandom and you'll probably
+    #get one, eventually?
+    bitaddr = c + 2*(p[0]<q[0]) + 4*(p[0]>q[0]) + 8*(p[1]<q[1]) + 16*(p[1]>q[1])
+    return q if (_cornertable[d] >> bitaddr)&1 else p
