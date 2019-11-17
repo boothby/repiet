@@ -111,7 +111,7 @@ class Tracer:
                     intro = ops[:steps]
                     loop = tuple(ops[steps:])
                     #the intro is nontrivial, so we stash the looping portion
-                    self._traces[node.name] = Node(node.name, loop, dests)
+                    self._traces[node.name] = _Node(node.name, loop, dests)
                     #then, we return the intro segment
                     return intro, dests
                 else:

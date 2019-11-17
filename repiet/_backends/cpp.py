@@ -4,7 +4,7 @@ import subprocess
 class cppbackend(backend):
     def define(self, name, ops, dest):
         if dest is None:
-            return "{}: {};return 0;".format(name, ops)
+            return "{}: {}return 0;".format(name, ops)
         else:
             return "{}: {}goto {};".format(name, ops, dest)
 
@@ -49,8 +49,8 @@ class cppbackend(backend):
 
     def render(self, defs, start):
         if start is None:
-            defs = ""
-            start = "return 0;"
+            defs = "end:return 0;"
+            start = "end"
 
         return """#include <vector>
 #include <iostream>
@@ -72,6 +72,6 @@ void rll(int x, int y) {
 int main() {
 int t=0,i=0,a,b;
 char A;
-goto """ + start + """;
 """ + defs + """
+goto """ + start + """;
 }"""

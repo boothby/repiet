@@ -291,7 +291,7 @@ class pietbackend(backend):
 
     def render(self, defs, start):
         if start is None:
-            return "P1 1 1 0"
+            return b"P1 1 1 0"
 
         def_id = {}
         defs_1 = []
