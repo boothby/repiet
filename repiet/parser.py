@@ -32,16 +32,16 @@ class Parser:
     lexer.  Discards the Lexer after initialization, to minimize memory use.
     """
     def __init__(self, filename, **opinions):
+        self._opinions = _default_opinions(**opinions)
+        self._process_opinions()
+
         lexer = _Lexer(filename, **opinions)
         p0 = 0, 0
         d = c = 0
         root = lexer.at(p0)
         if root == _SLIDE:
-            p0, d, c = _slide(self, p0, d, c)[0]
+            p0, d, c = self._slide(lexer, p0, d, c)[0]
             root = lexer.at(p0)
-
-        self._opinions = _default_opinions(**opinions)
-        self._process_opinions()
 
         self._graph = {}
         if root is None:
