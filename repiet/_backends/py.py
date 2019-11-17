@@ -23,7 +23,7 @@ class py3backend(backend):
             "DPL" : " a = pop()\n a is not None and psh(a,a)\n",
             "NOT" : " a = pop()\n a is not None and psh(int(not a))\n",
             "DUT" : " a = pop()\n a is not None and print(a, sep='', end='', flush=1)\n",
-            "CUT" : " a = pop()\n a is not None and print(chr(a%256), sep='', end='', flush=1)\n",
+            "CUT" : " a = pop()\n a is not None and print(chr(a&255), sep='', end='', flush=1)\n",
             "DVD" : " a,b = pop2()\n a is not None and a!=0 and psh(b//a)\n",
             "MOD" : " a,b = pop2()\n a is not None and a!=0 and psh(b%a)\n",
             "GRT" : " a,b = pop2()\n a is not None and psh(int(b>a))\n",

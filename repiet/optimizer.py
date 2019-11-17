@@ -287,6 +287,6 @@ class _PPVM(object):
     def DUT(self, a): self.outputs.append(str(a))
 
     @_check(1)
-    def CUT(self, a): self.outputs.append(chr(a))
+    def CUT(self, a): self.outputs.append(chr(a&255))
 
 
