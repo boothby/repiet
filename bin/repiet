@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('source', type=str, help = 'source image')
     parser.add_argument('--target', type=str, help = 'output filename', required = False)
     parser.add_argument('--backend', type=str,
-        choices=('c++', 'python', 'piet'),
+        choices=('c++', 'python', 'piet', 'repiet'),
         default='python', help = 'language to compile to')
     parser.add_argument('--optimize', default=0, type=int, help='optimization level')
     parser.add_argument('--execute', action='store_true', 
@@ -44,6 +44,9 @@ if __name__ == '__main__':
         from repiet.backends import pietbackend as backend
         ext = '.ppm'
         mode = 'wb'
+    elif args.backend == 'repiet':
+        from repiet.backends import irbackend as backend
+        ext = '.rpir'
     else:
         raise RuntimeError("Bug! 'backend' should be a required parameter but we got here")
 
