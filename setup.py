@@ -9,12 +9,6 @@ import repiet
 setup_folder_loc = os.path.dirname(os.path.abspath(__file__))
 os.chdir(setup_folder_loc)
 
-install_requires = ['Pillow']
-
-packages = ['repiet', 'repiet._backends']
-
-scripts = ['bin/repiet']
-
 setup(
     name=repiet.__pkgname__,
     version=repiet.__version__,
@@ -22,7 +16,7 @@ setup(
     author_email=repiet.__authoremail__,
     description=repiet.__description__,
     url=repiet.__url__,
-    packages=packages,
-    scripts=scripts,
-    install_requires=install_requires,
+    packages=['repiet', 'repiet._backends'],
+    entry_points={"console_scripts": ["repiet=repiet.__main__:main"]},
+    install_requires=['Pillow'],
 )

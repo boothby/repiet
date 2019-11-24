@@ -1,36 +1,35 @@
-#! /usr/bin/env python3
 import argparse
 import sys
 import repiet
 import tempfile
 
-if __name__ == '__main__':
+def main(argv=None):
     #Determine if the user has asked for --help.  If not, we hide certain
     #arguments to keep usage / help simple.  This could probably be done
     #with custom formatters, but the approach here is nice and tidy.
     helpparser = argparse.ArgumentParser(description='determine if the user asked for help', add_help=False)
     helpparser.add_argument('--help', action='store_true', dest='longhelp')
-    longhelp = helpparser.parse_known_args()[0].longhelp
+    longhelp = helpparser.parse_known_args(argv)[0].longhelp
 
     parser = argparse.ArgumentParser(description='Compile or execute a Piet program.',
                                      epilog='' if longhelp else 'Additional arguments available with --help')
-    parser.add_argument('source', type=str, help = 'source image')
-    parser.add_argument('--target', type=str, help = 'output filename', required = False)
-    parser.add_argument('--backend', type=str,
+    parser.add_argument('source', type=str, help='source image')
+    parser.add_argument('-t', '--target', type=str, help='output filename')
+    parser.add_argument('-b', '--backend', type=str,
         choices=('c++', 'python', 'piet', 'repiet'),
-        default='python', help = 'language to compile to')
-    parser.add_argument('--optimize', default=0, type=int, help='optimization level')
-    parser.add_argument('--execute', action='store_true', 
+        default='python', help='language to compile to')
+    parser.add_argument('-o', '--optimize', default=0, type=int, help='optimization level')
+    parser.add_argument('-e', '--execute', action='store_true', 
         default=False, help = 'execute the compilation product')
 
     opinionparser = parser.add_argument_group('parsing/lexing arguments')
-    for (op, args) in repiet.util.opinion_options.items():
-        args['default'] = argparse.SUPPRESS
+    for (op, kw) in repiet.util.opinion_options.items():
+        kw['default'] = argparse.SUPPRESS
         if op != 'codel_size' and not longhelp:
-            args['help'] = argparse.SUPPRESS
-        opinionparser.add_argument('--'+op, **args)
+            kw['help'] = argparse.SUPPRESS
+        opinionparser.add_argument('--'+op, **kw)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     opinions = {k:v for (k,v) in vars(args).items() if k in repiet.util.opinion_options}
 
     mode = 'w'
@@ -71,3 +70,6 @@ if __name__ == '__main__':
     if args.execute:
         backend.execute(target)
 
+if __name__ == "__main__":
+    print(sys.argv)
+    main(sys.argv[1:])
