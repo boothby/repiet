@@ -146,8 +146,8 @@ versus the `wc` supplied by my operating system (you don't need to know any
 details about my system, of course).
 
     $ cd assets
-    $ repiet wc.png -o wc.c --backend c
-    $ gcc wc.c -o wc -Ofast
+    $ repiet wc.png -o wc.c --backend c --codel_size 10 -O 2
+    $ gcc wc.c -o wc -O3
   
 Okay, now our wc utility is built; let's grab some data to test.
 
