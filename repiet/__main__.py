@@ -11,15 +11,15 @@ def main(argv=None):
     helpparser.add_argument('--help', action='store_true', dest='longhelp')
     longhelp = helpparser.parse_known_args(argv)[0].longhelp
 
-    parser = argparse.ArgumentParser(description='Compile or execute a Piet program.',
+    parser = argparse.ArgumentParser(prog='repiet', description='Compile or execute a Piet program.',
                                      epilog='' if longhelp else 'Additional arguments available with --help')
     parser.add_argument('source', type=str, help='source image')
-    parser.add_argument('-t', '--target', type=str, help='output filename')
+    parser.add_argument('-o', '--output', type=str, help='output filename')
     parser.add_argument('-b', '--backend', type=str,
-        choices=('c++', 'python', 'piet', 'repiet'),
+        choices=('c', 'c++', 'piet', 'python', 'repiet'),
         default='python', help='language to compile to')
-    parser.add_argument('-o', '--optimize', default=0, type=int, help='optimization level')
-    parser.add_argument('-e', '--execute', action='store_true', 
+    parser.add_argument('-O', '--optimize', default=0, type=int, help='optimization level')
+    parser.add_argument('-x', '--execute', action='store_true', 
         default=False, help = 'execute the compilation product')
 
     opinionparser = parser.add_argument_group('parsing/lexing arguments')
@@ -36,6 +36,9 @@ def main(argv=None):
     if args.backend == 'c++':
         from repiet.backends import cppbackend as backend
         ext = '.cpp'
+    elif args.backend == 'c':
+        from repiet.backends import cbackend as backend
+        ext = '.c'
     elif args.backend == 'python':
         from repiet.backends import py3backend as backend
         ext = '.py'
@@ -49,10 +52,10 @@ def main(argv=None):
     else:
         raise RuntimeError("Bug! 'backend' should be a required parameter but we got here")
 
-    if args.target is None:
-        target = "".join((args.source, ext))
+    if args.output is None:
+        output = "".join((args.source, ext))
     else:
-        target = args.target
+        output = args.output
 
     backend=backend()
 
@@ -64,12 +67,11 @@ def main(argv=None):
         prog = repiet.optimizer.StaticEvaluator(args.source, **opinions)
 
     compiler = repiet.compiler.compiler(prog, backend)
-    with open(target, mode) as outfile:
+    with open(output, mode) as outfile:
         outfile.write(compiler.render())    
 
     if args.execute:
-        backend.execute(target)
+        backend.execute(output)
 
 if __name__ == "__main__":
-    print(sys.argv)
-    main(sys.argv[1:])
+    main()
