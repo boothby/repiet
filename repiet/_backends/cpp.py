@@ -41,8 +41,8 @@ class cppbackend(backend):
             "GRT" : "if (pop(a, b)) psh(b>a);",
             "DPL" : "if (pop(a)) { psh(a); psh(a); }",
             "RLL" : "if (pop(a, b)) rll(a, b);",
-            "DIN" : "cin >> a; if(good(cin)) psh(a);",
-            "CIN" : "cin >> A; if(good(cin)) psh(A);",
+            "DIN" : "cin >> a; if(!cin.fail()) psh(cin.eof()?-1:a);",
+            "CIN" : "cin.get(A); if(!cin.bad()) psh(cin.eof()?-1:static_cast<int>(A));",
             "DUT" : "if (pop(a)) cout << a;",
             "CUT" : "if (pop(A)) cout << A;",
          }[i]
