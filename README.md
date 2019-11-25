@@ -110,6 +110,72 @@ visible in this page's working example.  The existing static evaluator does not
 drop those instructions, but they're apparently rare in hand-crafted or assembled
 Piet programs.
 
+# Installing and Using `repiet`
+
+Repiet is a `python` package, with a standard `setup.py`.  To get the very latest,
+fetch the git repo and install from there.
+
+    git clone https://github.com/boothby/repiet.git
+    cd repiet
+    python setup.py install
+ 
+Otherwise, just run `pip install repiet` and you're off to the races.  The primary
+interface to `repiet` is the module's `__main__`, but you can also `import` it
+`repiet` from python and poke around the module structure.  The `__main__` can be
+used either as an executable python module,
+
+    python -m repiet ...
+
+or depending on how it's been installed, directly from the command line
+
+    repiet ...
+
+## But is it Faster Than C?
+
+<img src="assets/wc.png" align="right" width="20%" title="A wc utility, which is waaaaay faster than C." title="A wc utility, which is waaaaay faster than C.">
+
+Yes!  Well, let's back up a minute for the folks missing context.  Recently there
+have been a spate of blog posts of folks claiming that their pet language is
+"faster than C" by implementing a feature-incomplete version of the 
+[wc](http://man7.org/linux/man-pages/man1/wc.1.html) utility and running a single
+benchmark to demonstrate superiority.
+
+After cloning the `repiet` repo, point your command line at that directory.  We've
+placed a `wc` utility into the `assets` directory, and we're going to time it
+versus the `wc` supplied by my operating system (you don't need to know any
+details about my system, of course).
+
+    $ cd assets
+    $ repiet wc.png -o wc.c --backend c
+    $ gcc wc.c -o wc -Ofast
+  
+Okay, now our wc utility is built; let's grab some data to test.
+
+    $ wget https://github.com/dwyl/english-words/raw/master/words_dictionary.json
+
+Now, we're off to the races!  Don't worry, I didn't cherrypick these benchmarks
+at all!
+
+    $ time cat words_dictionary.json | wc -w
+    740204
+
+    real	0m0.145s
+    user	0m0.136s
+    sys	0m0.036s
+
+Wow that's fast.  Now let's our hand-optimized Piet hotrod!
+
+    $ time cat words_dictionary.json | ./wc
+    740204
+    real	0m0.131s
+    user	0m0.140s
+    sys	0m0.028s
+
+Holy wowzers, that's extremely peppy!  Good thing I only ran those tests once,
+and didn't show a distribution of runtimes!
+
+So there you go, Piet is faster than C.  Tell your grandma.
+
 # Notes on Style and Quality
 
 This project was written purely for the amusement of the author.  Hence, the code
