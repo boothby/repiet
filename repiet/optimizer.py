@@ -76,17 +76,19 @@ class StaticEvaluator:
         """
         traces = self._traces
         #I'm sick of apologizing for this -- what an awesome stack!
-        to_process = self._root, ()
+        to_process = (self._root, True), ()
         while to_process:
-            name, to_process = to_process
+            (name, truestack), to_process = to_process
             trace = tracer[name]
-            ops, dests = self._eval(tracer, trace)
-            traces[name] = _Node(name, tuple(ops), dests)
+            ops, dests, truestack = self._eval(tracer, trace, truestack)
+            dests = [_rename(d, truestack) for d in dests]
+            truename = _rename(name, truestack)
+            traces[truename] = _Node(truename, tuple(ops), tuple(dests))
             for dest in dests:
                 if dest not in traces:
-                    to_process = dest, to_process
+                    to_process = (dest, truestack), to_process
 
-    def _eval(self, tracer, trace):
+    def _eval(self, tracer, trace, truestack):
         """
         Simulates a Piet interpreter running the operations of this trace,
         using a special virtual machine.  Operations whose impact cannot be
@@ -97,12 +99,16 @@ class StaticEvaluator:
 
         #list of operations in the static-eval'd trace
         ops = []
+        def finish():
+            end = vm.finish()
+            if any(end): ops.append(end)
+            return truestack and not end[0]
 
         #list of states we've encountered
-        hits = {(trace.name, trace.name)}
-
+        hits = {(trace.name, trace.name, truestack)}
         vm = None
         while True:
+            print(" entering trace {}, truestack is".format(trace.name, truestack))
             dests = trace.dests
             #we skip the PTR and SWT operations here -- the vm can't handle
             #them... I promise to put it back!
@@ -117,56 +123,76 @@ class StaticEvaluator:
                 if vm is None:
                     #only start up a vm on a PSH
                     if isinstance(op, int):
+                        print("   firing up a VM")
                         vm = _PPVM()
                         vm.eval(op)
-                    else:
+                    elif op in ("CIN", "DIN") or not truestack:
                         ops.append(op)
+                        truestack = False
                 elif not vm.eval(op): #we've got a running vm; hit it!
-                    #oops, the vm couldn't perform that operation --
-                    #grab its output and throw it away.
-                    ops.append(vm.finish())
-                    ops.append(op)
-                    vm = None
+                    if truestack and op not in ("CIN", "DIN"):
+                        #We tried to perform an op on a truly empty stack... chuck
+                        #it out and keep on truckin'
+                        continue
+                    else:
+                        #oops, the vm couldn't perform that operation --
+                        #grab its output and throw it away.
+                        finish()
+                        ops.append(op)
+                        vm = None
+                        truestack = False
 
             if vm is not None:
-                if vm.stack and len(dests) > 1:
+                if (vm.stack or truestack) and len(dests) > 1:
                     #here, we've got the opportunity to simplify PTR and SWT
                     #operations -- I know I promised to "put it back" but this is
                     #my opportunity to gobble up more program.  Instead, we perform
                     #the operation and keep going.
-                    i = vm.stack.pop() % len(dests)
+                    i = (vm.stack.pop() if vm.stack else 0) % len(dests)
                     dest = dests[i]
                     #and here's where we remember to be careful about going in
                     #cycles.  we can visit any given trace up to 4 times, provided
                     #that it exits to a different trace each time
-                    if (trace.name, dest) in hits:
-                        ops.append(vm.finish())
-                        return ops, (dest,)
+                    if (trace.name, dest, truestack) in hits:
+                        return ops, (dest,), finish()
                     else:
-                        hits.add((trace.name, dest))
+                        hits.add((trace.name, dest, truestack))
                         #fetch the next trace and keep going
                         trace = tracer[dest]
-                elif final is not None:
-                    #putting it back
-                    ops.append(vm.finish())
-                    ops.append(final)                    
+                elif len(dests) > 1:
+                    #we want to pop from an apparently (but not provably) empty stack.
+                    #put the final conditional back, and quit evaluating
+                    return ops, dests, finish()
                 elif len(dests) == 1:
                     dest, = dests
-                    if (trace.name, dest) in hits:
-                        ops.append(vm.finish())
-                        return ops, dests
+                    if (trace.name, dest, truestack) in hits:
+                        end = vm.finish()
+                        if any(end): ops.append(end)
+                        return ops, (dest,), (truestack and not end[0])
                     else:
-                        hits.add((trace.name, dest))
+                        hits.add((trace.name, dest, truestack))
                         trace = tracer[dest]
                 else:
-                    ops.append(vm.finish())
-                    return ops, dests                    
+                    return ops, dests, finish()
             else:
                 if final is not None:
-                    ops.append(final)                    
-                #see, I put it back
-                return ops, dests
+                    if truestack:
+                        #the stack is empty so we hop to dests[0]
+                        dests = dests[0],
+                    else:
+                        #otherwise we put the final op back
+                        ops.append(final)
+                if len(dests) != 1 or (trace.name, dests[0], truestack) in hits:
+                    return ops, dests, truestack
+                else:
+                    hits.add((trace.name, dests[0], truestack))
+                    #fetch the next trace and keep going
+                    trace = tracer[dests[0]]
 
+def _rename(name, truestack):
+    if truestack:
+        return name+"_"
+    return name
 
 def _check(n):
     """
